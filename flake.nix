@@ -6,8 +6,8 @@
     flake-parts.url = "github:hercules-ci/flake-parts";
   };
 
-  outputs = inputs@{ flake-parts }:
-    flake-parts.lib.mkFlake { inherit inputs; } {
+  outputs = { self, ... }@inputs:
+    inputs.flake-parts.lib.mkFlake { inherit inputs; } {
       systems = [
         "x86_64-linux"
         "aarch64-linux"
@@ -20,8 +20,22 @@
           packages = with pkgs; [
             go
             bun
+            nodejs_20
+            corepack
+            angular-language-server
+            docker
+            git
+            openssl
+            jq
+            bashInteractive
             nixd
           ];
+          shellHook = ''
+            echo "Dev shell ready:"
+            echo -n "bun "; bun --version 2>/dev/null || true
+            echo -n "node "; node --version 2>/dev/null || true
+            echo -n "ngls "; angular-language-server --version 2>/dev/null || true
+          '';
         };
       };
     };

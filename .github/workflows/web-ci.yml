@@ -1,0 +1,43 @@
+name: Web CI
+
+on:
+  push:
+    paths:
+      - 'flake.nix'
+      - 'flake.lock'
+      - 'web/**'
+      - '.github/workflows/web-ci.yml'
+  pull_request:
+    paths:
+      - 'flake.nix'
+      - 'flake.lock'
+      - 'web/**'
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@v12
+
+      - name: Cache Nix
+        uses: DeterminateSystems/magic-nix-cache-action@v7
+
+      - name: Build and Test (Bun + Angular in devShell)
+        run: |
+          nix develop -c bash -lc '
+            cd web
+            bun --version
+            node --version
+            bun install || npm ci
+            bun run ng build --configuration production || npx ng build --configuration production
+            bun run vitest run || npx vitest run
+          '
+
+      # - name: Docker build (optional)
+      #   run: |
+      #     cd web
+      #     docker build -t web-build:ci .
