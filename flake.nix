@@ -26,16 +26,10 @@
             docker
             git
             openssl
+            gcc
             jq
-            bashInteractive
             nixd
           ];
-          shellHook = ''
-            echo "Dev shell ready:"
-            echo -n "bun "; bun --version 2>/dev/null || true
-            echo -n "node "; node --version 2>/dev/null || true
-            echo -n "ngls "; angular-language-server --version 2>/dev/null || true
-          '';
         };
       };
     };
