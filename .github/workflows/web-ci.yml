@@ -1,12 +1,6 @@
 name: Web CI
 
 on:
-  push:
-    paths:
-      - 'flake.nix'
-      - 'flake.lock'
-      - 'web/**'
-      - '.github/workflows/web-ci.yml'
   pull_request:
     paths:
       - 'flake.nix'
