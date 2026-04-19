@@ -16,9 +16,6 @@ jobs:
       - name: Install Nix
         uses: DeterminateSystems/nix-installer-action@v12
 
-      - name: Cache Nix
-        uses: DeterminateSystems/magic-nix-cache-action@v7
-
       - name: Build and Test (Bun + Angular in devShell)
         run: |
           nix develop -c bash -lc '
