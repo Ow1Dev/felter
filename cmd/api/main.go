@@ -1,3 +1,4 @@
+// Package main runs the HTTP API server.
 package main
 
 import (
@@ -15,9 +16,16 @@ import (
 
 func main() {
 	cfg := config.Load()
+	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer cancel()
+	if err := run(ctx, cfg); err != nil {
+		log.Fatalf("fatal: %v", err)
+	}
+}
 
+// run wires the server and blocks until context cancellation, shutting down gracefully.
+func run(ctx context.Context, cfg config.Config) error {
 	handler := httpserver.New(cfg)
-
 	srv := &http.Server{
 		Addr:         cfg.Address,
 		Handler:      handler,
@@ -26,26 +34,25 @@ func main() {
 		IdleTimeout:  cfg.IdleTimeout,
 	}
 
-	// Start server in a goroutine
+	// Start server
 	go func() {
 		log.Printf("api listening on %s", cfg.Address)
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			log.Fatalf("server error: %v", err)
+			log.Printf("server error: %v", err)
 		}
 	}()
 
-	// Graceful shutdown
-	quit := make(chan os.Signal, 1)
-	signal.Notify(quit, os.Interrupt, syscall.SIGTERM)
-	<-quit
+	// Wait for cancellation
+	<-ctx.Done()
 	log.Printf("shutting down...")
 
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	if err := srv.Shutdown(ctx); err != nil {
+	if err := srv.Shutdown(shutdownCtx); err != nil {
 		log.Printf("graceful shutdown failed: %v", err)
 		if err := srv.Close(); err != nil {
 			log.Printf("force close error: %v", err)
 		}
 	}
+	return nil
 }

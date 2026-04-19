@@ -1,0 +1,34 @@
+version: 2
+
+run:
+  timeout: 3m
+  tests: true
+
+linters:
+  enable:
+    - govet
+    - staticcheck
+    - ineffassign
+    - errcheck
+    - unused
+    - revive
+
+formatters:
+  enable:
+    - gofumpt
+
+linters-settings:
+  # keep settings minimal; formatters managed outside lint
+  revive:
+    rules:
+      - name: exported
+        severity: warning
+        disabled: false
+
+  gofumpt:
+    extra-rules: true
+
+issues:
+  exclude-use-default: false
+  max-issues-per-linter: 0
+  max-same-issues: 0

@@ -33,7 +33,11 @@ func recoverer(next http.Handler) http.Handler {
 		defer func() {
 			if rec := recover(); rec != nil {
 				log.Printf("panic: %v", rec)
-				writeError(w, http.StatusInternalServerError, "internal server error")
+				// avoid import cycle by relying on httputil helpers
+				// keep local minimal dependency by inlining minimal error response
+				w.Header().Set("Content-Type", "application/json; charset=utf-8")
+				w.WriteHeader(http.StatusInternalServerError)
+				_, _ = w.Write([]byte("{\"error\":\"internal server error\"}\n"))
 			}
 		}()
 		next.ServeHTTP(w, r)

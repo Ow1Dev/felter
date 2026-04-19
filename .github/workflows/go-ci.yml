@@ -1,0 +1,33 @@
+name: Go CI
+
+on:
+  pull_request:
+    paths:
+      - "cmd/**"
+      - "internal/**"
+      - "go.*"
+      - ".golangci.yml"
+      - "flake.*"
+
+jobs:
+  lint-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Nix
+        uses: cachix/install-nix-action@v30
+        with:
+          extra_nix_config: |
+            experimental-features = nix-command flakes
+
+      - name: Enter dev shell and run checks
+        run: |
+          nix develop -c bash -lc '
+            go version;
+            golangci-lint version;
+            go mod tidy;
+            golangci-lint run;
+            go vet ./...;
+            go test ./... -race -count=1;
+          '

@@ -23,14 +23,17 @@
             nodejs_20
             corepack
             angular-language-server
+            typescript-language-server
             docker
             git
             openssl
             gcc
             jq
             nixd
+            golangci-lint
+            gofumpt
           ];
         };
       };
     };
-}
+  } 
