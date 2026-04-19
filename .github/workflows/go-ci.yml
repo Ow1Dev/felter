@@ -1,4 +1,4 @@
-name: Nix Go CI
+name: Go CI
 
 on:
   pull_request:
