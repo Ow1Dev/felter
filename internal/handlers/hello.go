@@ -1,3 +1,4 @@
+// Package handlers contains HTTP handler constructors for API endpoints.
 package handlers
 
 import (
@@ -11,7 +12,7 @@ func HandleHello() http.Handler {
 	type response struct {
 		Message string `json:"message"`
 	}
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	return http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		_ = httputil.WriteJSON(w, http.StatusOK, response{Message: "hello world"})
 	})
 }

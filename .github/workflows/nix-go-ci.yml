@@ -1,0 +1,41 @@
+name: Nix Go CI
+
+on:
+  pull_request:
+    branches: ["**"]
+    paths:
+      - "cmd/**"
+      - "internal/**"
+      - "go.*"
+      - ".golangci.yml"
+      - "flake.*"
+
+jobs:
+  lint-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Nix
+        uses: cachix/install-nix-action@v30
+        with:
+          extra_nix_config: |
+            experimental-features = nix-command flakes
+
+      - name: Use Nix cache (optional)
+        uses: cachix/cachix-action@v14
+        if: ${{ secrets.CACHIX_AUTH_TOKEN != '' }}
+        with:
+          name: ow1
+          authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
+
+      - name: Enter dev shell and run checks
+        run: |
+          nix develop -c bash -lc '
+            go version;
+            golangci-lint version;
+            go mod tidy;
+            golangci-lint run;
+            go vet ./...;
+            go test ./... -race -count=1;
+          '

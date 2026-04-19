@@ -9,11 +9,11 @@ import (
 )
 
 // addRoutes maps the entire API surface in one place.
-func addRoutes(mux *http.ServeMux, cfg config.Config) {
+func addRoutes(mux *http.ServeMux, _ config.Config) {
 	mux.Handle("/api/hello", handlers.HandleHello())
 
 	// NotFound -> JSON
-	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/", func(w http.ResponseWriter, _ *http.Request) {
 		httputil.WriteError(w, http.StatusNotFound, "not found")
 	})
 }

@@ -1,3 +1,5 @@
+// Package config loads runtime configuration from environment variables
+// with sensible defaults for local development.
 package config
 
 import (
@@ -7,6 +9,7 @@ import (
 	"time"
 )
 
+// Config holds server runtime configuration values.
 type Config struct {
 	Address        string
 	AllowedOrigins []string
@@ -15,6 +18,7 @@ type Config struct {
 	IdleTimeout    time.Duration
 }
 
+// Load reads configuration from environment variables and returns a Config.
 func Load() Config {
 	addr := getAddr()
 	origins := getOrigins()

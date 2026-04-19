@@ -29,8 +29,10 @@
             gcc
             jq
             nixd
+            golangci-lint
+            gofmt
           ];
         };
       };
     };
-}
+  } 

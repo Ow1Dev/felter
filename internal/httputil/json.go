@@ -1,3 +1,5 @@
+// Package httputil contains helpers for JSON encoding/decoding and
+// writing consistent JSON responses.
 package httputil
 
 import (
@@ -12,6 +14,7 @@ type ErrorResponse struct {
 }
 
 // WriteJSON writes v as JSON with the provided status code.
+// It sets the content type and wraps encoding errors.
 func WriteJSON(w http.ResponseWriter, status int, v any) error {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.WriteHeader(status)
@@ -28,6 +31,7 @@ func WriteError(w http.ResponseWriter, status int, msg string) {
 }
 
 // Decode decodes a JSON request body into T.
+// The caller is responsible for closing r.Body.
 func Decode[T any](r *http.Request) (T, error) {
 	var v T
 	if err := json.NewDecoder(r.Body).Decode(&v); err != nil {

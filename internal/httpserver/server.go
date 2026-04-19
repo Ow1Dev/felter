@@ -1,3 +1,4 @@
+// Package httpserver wires the HTTP server's routing and middleware.
 package httpserver
 
 import (
