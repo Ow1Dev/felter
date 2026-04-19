@@ -19,7 +19,7 @@ dev:
 	cd $(WEB_DIR) && bun run start
 
 fmt:
-	@go fmt ./...
+	@gofumpt -w .
 
 fmt-check:
 	@diff -u <(echo -n) <(gofmt -l . | sed '/^$/d') && echo "format OK" || (echo "Run 'make fmt' to format" && exit 1)

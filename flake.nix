@@ -30,7 +30,7 @@
             jq
             nixd
             golangci-lint
-            gofmt
+            gofumpt
           ];
         };
       };

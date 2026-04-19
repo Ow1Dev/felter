@@ -13,6 +13,10 @@ linters:
     - unused
     - revive
 
+formatters:
+  enable:
+    - gofumpt
+
 linters-settings:
   # keep settings minimal; formatters managed outside lint
   revive:
@@ -20,6 +24,9 @@ linters-settings:
       - name: exported
         severity: warning
         disabled: false
+
+  gofumpt:
+    extra-rules: true
 
 issues:
   exclude-use-default: false
