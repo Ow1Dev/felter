@@ -2,12 +2,16 @@ package handlers
 
 import (
 	"net/http"
+
+	"github.com/Ow1Dev/felter/internal/httputil"
 )
 
-// Hello writes a simple hello world JSON response.
-func Hello(w http.ResponseWriter, r *http.Request) {
-	// response kept simple and explicit here; helpers used in httpserver layer
-	w.Header().Set("Content-Type", "application/json; charset=utf-8")
-	w.WriteHeader(http.StatusOK)
-	_, _ = w.Write([]byte("{\"message\":\"hello world\"}\n"))
+// HandleHello returns a handler that replies with a hello world message.
+func HandleHello() http.Handler {
+	type response struct {
+		Message string `json:"message"`
+	}
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_ = httputil.WriteJSON(w, http.StatusOK, response{Message: "hello world"})
+	})
 }
