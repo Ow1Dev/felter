@@ -3,8 +3,7 @@ name: Web CI
 on:
   pull_request:
     paths:
-      - 'flake.nix'
-      - 'flake.lock'
+      - 'flake.*'
       - 'web/**'
 
 jobs:
@@ -26,9 +25,9 @@ jobs:
             cd web
             bun --version
             node --version
-            bun install || npm ci
-            bun run ng build --configuration production || npx ng build --configuration production
-            bun run vitest run || npx vitest run
+            bun install
+            bun run ng build --configuration production
+            bun run test
           '
 
       # - name: Docker build (optional)

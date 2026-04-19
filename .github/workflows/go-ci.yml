@@ -2,7 +2,6 @@ name: Nix Go CI
 
 on:
   pull_request:
-    branches: ["**"]
     paths:
       - "cmd/**"
       - "internal/**"

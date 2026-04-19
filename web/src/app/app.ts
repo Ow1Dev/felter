@@ -1,10 +1,8 @@
 import { Component, OnInit, signal } from '@angular/core';
-import { RouterOutlet } from '@angular/router';
 import { HelloService } from './services/hello.service';
 
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet],
   template: `
     <main style="display:flex;align-items:center;justify-content:center;min-height:100dvh;font-family:system-ui,Segoe UI,Arial,sans-serif;">
       <div style="max-width:680px;padding:2rem;text-align:center;">
