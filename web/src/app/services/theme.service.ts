@@ -31,7 +31,7 @@ export class ThemeService {
       const stored = localStorage.getItem(STORAGE_KEY) as Theme | null;
       if (stored === 'light' || stored === 'dark') return stored;
     }
-    if (typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+    if (typeof window !== 'undefined' && typeof window.matchMedia === 'function' && window.matchMedia('(prefers-color-scheme: dark)').matches) {
       return 'dark';
     }
     return 'light';
