@@ -1,10 +1,24 @@
 import { TestBed } from '@angular/core/testing';
+import {
+  Briefcase, Building2, Calendar, Check, ChevronDown, Ellipsis,
+  FileText, HardHat, LUCIDE_ICONS, LucideIconProvider, Moon,
+  PanelLeftClose, PanelLeftOpen, Settings, Sun, UserRound, Users, Wrench,
+} from 'lucide-angular';
 import { App } from './app';
+
+const testIcons = {
+  Briefcase, Building2, Calendar, Check, ChevronDown, Ellipsis,
+  FileText, HardHat, Moon, PanelLeftClose, PanelLeftOpen,
+  Settings, Sun, UserRound, Users, Wrench,
+};
 
 describe('App', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [App],
+      providers: [
+        { provide: LUCIDE_ICONS, multi: true, useValue: new LucideIconProvider(testIcons) },
+      ],
     }).compileComponents();
   });
 
@@ -14,10 +28,10 @@ describe('App', () => {
     expect(app).toBeTruthy();
   });
 
-  it('should render title', async () => {
+  it('should render the sidebar', () => {
     const fixture = TestBed.createComponent(App);
-    await fixture.whenStable();
+    fixture.detectChanges();
     const compiled = fixture.nativeElement as HTMLElement;
-    expect(compiled.querySelector('h1')?.textContent).toContain('Felter');
+    expect(compiled.querySelector('app-sidebar')).toBeTruthy();
   });
 });
