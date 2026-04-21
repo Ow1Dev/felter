@@ -1,10 +1,12 @@
 import { Component, inject, input } from '@angular/core';
+import { Router } from '@angular/router';
 import { NgpAvatar, NgpAvatarFallback } from 'ng-primitives/avatar';
 import { NgpMenu, NgpMenuItem, NgpMenuTrigger } from 'ng-primitives/menu';
 import { NgpSeparator } from 'ng-primitives/separator';
 import { NgpTooltipTrigger } from 'ng-primitives/tooltip';
 import { LucideAngularModule } from 'lucide-angular';
 import { ThemeService } from '../../../services/theme.service';
+import { WorkspaceRouteService } from '../../../services/workspace-route.service';
 
 /** Bottom user area: avatar, user name, settings & theme toggle menu. */
 @Component({
@@ -52,6 +54,7 @@ import { ThemeService } from '../../../services/theme.service';
         <!-- User settings -->
         <button
           ngpMenuItem
+          (click)="goToUserSettings()"
           class="menu-item flex w-full items-center gap-2.5 rounded-md px-2.5 py-1.5 text-sm outline-none transition-colors cursor-pointer"
         >
           <lucide-icon name="user-round" [size]="14" class="text-muted-foreground" />
@@ -61,6 +64,7 @@ import { ThemeService } from '../../../services/theme.service';
         <!-- Workspace settings -->
         <button
           ngpMenuItem
+          (click)="goToWorkspaceSettings()"
           class="menu-item flex w-full items-center gap-2.5 rounded-md px-2.5 py-1.5 text-sm outline-none transition-colors cursor-pointer"
         >
           <lucide-icon name="settings" [size]="14" class="text-muted-foreground" />
@@ -123,4 +127,16 @@ import { ThemeService } from '../../../services/theme.service';
 export class UserMenuComponent {
   readonly collapsed = input(false);
   protected readonly themeService = inject(ThemeService);
+  private readonly router = inject(Router);
+  private readonly workspaceRoute = inject(WorkspaceRouteService);
+
+  protected goToUserSettings(): void {
+    void this.router.navigate(['/settings']);
+  }
+
+  protected goToWorkspaceSettings(): void {
+    const slug = this.workspaceRoute.workspaceSlug();
+    if (!slug) return;
+    void this.router.navigate(['/', slug, 'settings']);
+  }
 }

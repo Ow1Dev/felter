@@ -1,4 +1,5 @@
 import { TestBed } from '@angular/core/testing';
+import { provideRouter } from '@angular/router';
 import {
   Briefcase, Building2, Calendar, Check, ChevronDown, Ellipsis,
   FileText, HardHat, LUCIDE_ICONS, LucideIconProvider, Moon,
@@ -17,6 +18,7 @@ describe('App', () => {
     await TestBed.configureTestingModule({
       imports: [App],
       providers: [
+        provideRouter([]),
         { provide: LUCIDE_ICONS, multi: true, useValue: new LucideIconProvider(testIcons) },
       ],
     }).compileComponents();
