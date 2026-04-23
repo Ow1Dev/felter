@@ -32,6 +32,55 @@ const MOCK_WORKSPACES: Workspace[] = [
     initials: 'CT',
     color: 'bg-emerald-500',
   },
+  {
+    id: 'ws-4',
+    slug: 'urban-logistics',
+    name: 'Urban Logistics',
+    initials: 'UL',
+    color: 'bg-orange-500',
+  },
+  {
+    id: 'ws-5',
+    slug: 'stellar-solutions',
+    name: 'Stellar Solutions',
+    initials: 'SS',
+    color: 'bg-pink-500',
+  },
+  {
+    id: 'ws-6',
+    slug: 'nexus-networks',
+    name: 'Nexus Networks',
+    initials: 'NN',
+    color: 'bg-cyan-500',
+  },
+  {
+    id: 'ws-7',
+    slug: 'prime-ventures',
+    name: 'Prime Ventures',
+    initials: 'PV',
+    color: 'bg-red-500',
+  },
+  {
+    id: 'ws-8',
+    slug: 'harmony-hub',
+    name: 'Harmony Hub',
+    initials: 'HH',
+    color: 'bg-indigo-500',
+  },
+  {
+    id: 'ws-9',
+    slug: 'quantum-dynamics',
+    name: 'Quantum Dynamics',
+    initials: 'QD',
+    color: 'bg-amber-500',
+  },
+  {
+    id: 'ws-10',
+    slug: 'vortex-ventures',
+    name: 'Vortex Ventures',
+    initials: 'VV',
+    color: 'bg-teal-500',
+  },
 ];
 
 const ACTIVE_WORKSPACE_STORAGE_KEY = 'felter-active-workspace';
@@ -92,6 +141,17 @@ export class WorkspaceService {
   /** Get a workspace by slug. */
   getBySlug(slug: string): Workspace | undefined {
     return this.workspaces().find(workspace => workspace.slug === slug);
+  }
+
+  /** Search workspaces by name or slug. */
+  searchWorkspaces(query: string): Workspace[] {
+    if (!query.trim()) return this.workspaces();
+
+    const lowerQuery = query.toLowerCase();
+    return this.workspaces().filter(workspace =>
+      workspace.name.toLowerCase().includes(lowerQuery) ||
+      workspace.slug.toLowerCase().includes(lowerQuery),
+    );
   }
 
   /** Retrieve the stored active workspace slug, if valid. */

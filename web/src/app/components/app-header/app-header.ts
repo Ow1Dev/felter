@@ -1,16 +1,14 @@
-import { Component, inject, input } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { NgpAvatar, NgpAvatarFallback } from 'ng-primitives/avatar';
 import { NgpMenu, NgpMenuItem, NgpMenuTrigger } from 'ng-primitives/menu';
 import { NgpSeparator } from 'ng-primitives/separator';
-import { NgpTooltipTrigger } from 'ng-primitives/tooltip';
 import { LucideAngularModule } from 'lucide-angular';
-import { ThemeService } from '../../../services/theme.service';
-import { WorkspaceRouteService } from '../../../services/workspace-route.service';
+import { ThemeService } from '../../services/theme.service';
 
-/** Bottom user area: avatar, user name, settings & theme toggle menu. */
+/** Global app header displayed at the top of the application. */
 @Component({
-  selector: 'app-user-menu',
+  selector: 'app-app-header',
   imports: [
     NgpAvatar,
     NgpAvatarFallback,
@@ -18,17 +16,37 @@ import { WorkspaceRouteService } from '../../../services/workspace-route.service
     NgpMenu,
     NgpMenuItem,
     NgpSeparator,
-    NgpTooltipTrigger,
     LucideAngularModule,
   ],
   styles: [`
+    :host {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 3.5rem; /* 56px */
+      padding: 0.75rem 1rem;
+      border-bottom: 1px solid var(--sidebar-border);
+      background-color: var(--sidebar);
+    }
+
     [ngpMenu] {
       position: fixed;
       z-index: 100;
     }
   `],
   template: `
-    <!-- User settings menu template -->
+    <!-- Left side: brand name (clickable) -->
+    <button
+      (click)="goToWorkspaceChooser()"
+      class="text-sm font-semibold text-sidebar-foreground transition-colors hover:text-sidebar-accent-foreground cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-ring rounded px-2 py-1"
+    >
+      felter
+    </button>
+
+    <!-- Center: empty for now -->
+    <div></div>
+
+    <!-- Right side: user menu -->
     <ng-template #userMenu>
       <div
         ngpMenu
@@ -61,16 +79,6 @@ import { WorkspaceRouteService } from '../../../services/workspace-route.service
           User Settings
         </button>
 
-        <!-- Workspace settings -->
-        <button
-          ngpMenuItem
-          (click)="goToWorkspaceSettings()"
-          class="menu-item flex w-full items-center gap-2.5 rounded-md px-2.5 py-1.5 text-sm outline-none transition-colors cursor-pointer"
-        >
-          <lucide-icon name="settings" [size]="14" class="text-muted-foreground" />
-          Workspace Settings
-        </button>
-
         <div ngpSeparator style="border-top:1px solid var(--border);" class="my-1"></div>
 
         <!-- Theme toggle -->
@@ -91,52 +99,25 @@ import { WorkspaceRouteService } from '../../../services/workspace-route.service
       </div>
     </ng-template>
 
-    <!-- Trigger: expanded -->
-    @if (!collapsed()) {
-      <button
-        [ngpMenuTrigger]="userMenu"
-        ngpMenuTriggerPlacement="top-start"
-        class="flex w-full items-center gap-2.5 rounded-lg px-2 py-2 text-sm transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring"
-      >
-        <span
-          ngpAvatar
-          class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-secondary"
-        >
-          <span ngpAvatarFallback class="text-xs font-semibold text-secondary-foreground">JD</span>
-        </span>
-        <span class="flex-1 truncate text-left text-sidebar-foreground">John Doe</span>
-        <lucide-icon name="ellipsis" [size]="14" class="shrink-0 text-muted-foreground" />
-      </button>
-    }
-
-    <!-- Trigger: collapsed (avatar only + tooltip) -->
-    @if (collapsed()) {
-      <button
-        [ngpMenuTrigger]="userMenu"
-        ngpMenuTriggerPlacement="right-end"
-        [ngpTooltipTrigger]="'John Doe'"
-        ngpTooltipTriggerPlacement="right"
-        [ngpTooltipTriggerShowDelay]="300"
-        class="flex h-9 w-9 mx-auto items-center justify-center rounded-full bg-secondary transition-colors hover:ring-2 hover:ring-sidebar-border cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring"
-      >
-        <span class="text-xs font-semibold text-secondary-foreground">JD</span>
-      </button>
-    }
+    <!-- User avatar trigger -->
+    <button
+      [ngpMenuTrigger]="userMenu"
+      ngpMenuTriggerPlacement="bottom-end"
+      class="flex h-9 w-9 items-center justify-center rounded-full bg-secondary transition-colors hover:ring-2 hover:ring-border cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-ring"
+    >
+      <span class="text-xs font-semibold text-secondary-foreground">JD</span>
+    </button>
   `,
 })
-export class UserMenuComponent {
-  readonly collapsed = input(false);
+export class AppHeaderComponent {
   protected readonly themeService = inject(ThemeService);
   private readonly router = inject(Router);
-  private readonly workspaceRoute = inject(WorkspaceRouteService);
 
   protected goToUserSettings(): void {
     void this.router.navigate(['/settings']);
   }
 
-  protected goToWorkspaceSettings(): void {
-    const slug = this.workspaceRoute.workspaceSlug();
-    if (!slug) return;
-    void this.router.navigate(['/', slug, 'settings']);
+  protected goToWorkspaceChooser(): void {
+    void this.router.navigate(['/']);
   }
 }

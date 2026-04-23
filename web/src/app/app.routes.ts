@@ -4,7 +4,7 @@ export const routes: Routes = [
   {
     path: '',
     loadComponent: () =>
-      import('./pages/root-redirect/root-redirect').then(m => m.RootRedirectComponent),
+      import('./pages/workspace-selector/workspace-selector').then(m => m.WorkspaceSelectorComponent),
   },
   {
     path: 'no-workspace',
@@ -20,6 +20,10 @@ export const routes: Routes = [
   },
   {
     path: ':workspaceSlug',
+    loadComponent: () =>
+      import('./layouts/workspace-layout/workspace-layout').then(
+        m => m.WorkspaceLayoutComponent,
+      ),
     children: [
       {
         path: '',
