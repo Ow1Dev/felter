@@ -1,9 +1,11 @@
 import { Component, computed, input, model, output } from '@angular/core';
+import { NgClass } from '@angular/common';
 
 /** Reusable text input with styling aligned to the design system. */
 @Component({
   selector: 'app-text-input',
   standalone: true,
+  imports: [NgClass],
   host: {
     class: 'block w-full',
   },
@@ -14,7 +16,8 @@ import { Component, computed, input, model, output } from '@angular/core';
       [attr.placeholder]="placeholder() ?? undefined"
       [attr.autocomplete]="autocomplete() ?? undefined"
       [disabled]="disabled()"
-      class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+      [ngClass]="bgColor()"
+      class="w-full rounded-md border border-input px-3 py-2 text-sm text-foreground shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
       [value]="value()"
       (input)="onInput($event)"
       (blur)="onBlur()"
@@ -27,6 +30,7 @@ export class TextInputComponent {
   readonly autocomplete = input<string | null>(null);
   readonly disabled = input<boolean>(false);
   readonly type = input<string>('text');
+  readonly bgColor = input<string>('bg-background');
 
   readonly value = model<string>('');
 

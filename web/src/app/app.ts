@@ -1,17 +1,20 @@
 import { Component } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
-import { SidebarComponent } from './components/sidebar/sidebar';
+import { AppHeaderComponent } from './components/app-header/app-header';
 
-/** Root application shell: sidebar + main content area. */
+/** Root application shell: header + main content area. */
 @Component({
   selector: 'app-root',
-  imports: [SidebarComponent, RouterOutlet],
+  imports: [AppHeaderComponent, RouterOutlet],
   template: `
-    <div class="flex h-screen overflow-hidden bg-background text-foreground">
-      <app-sidebar />
-      <main class="flex flex-1 flex-col overflow-auto">
+    <div class="flex h-screen flex-col overflow-hidden bg-background text-foreground">
+      <!-- Global app header -->
+      <app-app-header />
+
+      <!-- Main content area (layout determined by router) -->
+      <div class="flex flex-1 w-full">
         <router-outlet />
-      </main>
+      </div>
     </div>
   `,
 })
