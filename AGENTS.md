@@ -13,7 +13,7 @@ Module: `github.com/Ow1Dev/felter`, Go 1.24.
 
 - **fieldservice**: `cmd/fieldservice/main.go`. Wires `internal/fieldservice/httpserver`.
 - **userservice**: `cmd/userservice/main.go`. Boots gRPC + HTTP listeners; imports `internal/userservice/grpcserver`, `internal/userservice/httpserver`, `internal/userservice/store`.
-- **migrate**: `cmd/migrate/main.go`. Walks `internal/**/migrations/*.up.sql` and applies them.
+- **migrate**: `cmd/migrate/main.go`. Uses `golang-migrate/migrate` library. Discovers `internal/<service>/migrations/`, creates per-service tracking tables (`<service>_migrations`), applies pending up migrations. Idempotent — safe to run multiple times.
 - **Web**: `web/src/main.ts` bootstraps a standalone Angular app. Active root template is the **inline `template:`** in `app.ts` — `app.html` is a dead CLI scaffold file.
 - `app.routes.ts` exports `Routes = []` (no routes yet). `HelloService` calls `GET {apiBaseUrl}/api/hello`; dev `apiBaseUrl = 'http://localhost:8080'`, prod `apiBaseUrl = '/api'`.
 
@@ -91,7 +91,48 @@ Address precedence (`fieldservice`): `ADDRESS` > `PORT` > `:8080`.
 - **`make dev` only kills the foreground process:** The fieldservice (`go run ./cmd/fieldservice &`) runs in background. It exits cleanly via `signal.NotifyContext`, but a crash leaves it running.
 - **`web/Dockerfile` is artifact-only:** Final stage is `FROM scratch` with only `/dist`. Not a runnable image.
 - **Go linting:** `.golangci.yml` enables `revive` with the `exported` rule — all exported symbols must have doc comments. `max-issues-per-linter: 0` surfaces every issue. Generated `*.pb.go` files are excluded from lint.
-- **External Go dependencies:** `go.mod` now includes `lib/pq`, `grpc`, and `protobuf`. The repo is no longer stdlib-only.
+- **External Go dependencies:** `go.mod` now includes `lib/pq`, `grpc`, `protobuf`, and `golang-migrate`. The repo is no longer stdlib-only.
+
+## Migrations
+
+Migrations are managed by `cmd/migrate` using the `golang-migrate/migrate` library (not a shell-out to a CLI binary).
+
+### Per-service isolation
+
+Each service has its own migration directory and its own tracking table in Postgres:
+
+| Service | Directory | Tracking Table |
+|---|---|---|
+| `userservice` | `internal/userservice/migrations/` | `userservice_migrations` |
+| `fieldservice` | `internal/fieldservice/migrations/` | `fieldservice_migrations` |
+
+This keeps services fully independent — one can be rolled back without affecting the other.
+
+### Naming convention
+
+Every migration is a pair:
+
+```
+{version}_{description}.up.sql
+{version}_{description}.down.sql
+```
+
+Example:
+```
+internal/userservice/migrations/
+  001_create_users.up.sql
+  001_create_users.down.sql
+```
+
+### Idempotency
+
+`make migrate` is safe to run multiple times. Each service is applied only up to its latest version. If already at the latest version, the output shows `already up to date`.
+
+### Adding a new service
+
+1. Create `internal/<service>/migrations/` (must contain at least one `.sql` file)
+2. Write `{NNN}_{name}.up.sql` and matching `.down.sql`
+3. Run `make migrate` — it will be discovered automatically
 
 ## Where Things Live
 

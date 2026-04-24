@@ -2,6 +2,7 @@ package store
 
 import (
 	"context"
+	"fmt"
 	"testing"
 	"time"
 
@@ -26,13 +27,20 @@ func TestPostgresStore(t *testing.T) {
 	store := NewPostgresStore(pool)
 
 	t.Run("create and list", func(t *testing.T) {
-		created, err := store.CreateUser(ctx, "alice@test.com", "alice", "Alice")
+		// Use unique values to avoid collision across repeated test runs.
+		email := fmt.Sprintf("alice-%d@test.com", time.Now().UnixNano())
+		username := fmt.Sprintf("alice-%d", time.Now().UnixNano())
+
+		created, err := store.CreateUser(ctx, email, username, "Alice")
 		if err != nil {
 			t.Fatalf("create: %v", err)
 		}
 		if created.ID == 0 {
 			t.Fatal("expected non-zero id")
 		}
+		t.Cleanup(func() {
+			_, _ = pool.Exec("DELETE FROM users WHERE id = $1", created.ID)
+		})
 
 		list, err := store.ListUsers(ctx)
 		if err != nil {

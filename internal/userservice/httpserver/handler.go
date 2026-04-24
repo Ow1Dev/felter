@@ -2,10 +2,9 @@
 package httpserver
 
 import (
-	"encoding/json"
-	"fmt"
 	"net/http"
 
+	"github.com/Ow1Dev/felter/internal/httputil"
 	"github.com/Ow1Dev/felter/internal/userservice/store"
 )
 
@@ -36,13 +35,13 @@ func handleListUsers(s store.Store) http.Handler {
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet {
-			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+			httputil.WriteError(w, http.StatusMethodNotAllowed, "method not allowed")
 			return
 		}
 
 		users, err := s.ListUsers(r.Context())
 		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			httputil.WriteError(w, http.StatusInternalServerError, err.Error())
 			return
 		}
 
@@ -59,14 +58,14 @@ func handleListUsers(s store.Store) http.Handler {
 			}
 		}
 
-		_ = encode(w, r, http.StatusOK, resp)
+		_ = httputil.WriteJSON(w, http.StatusOK, resp)
 	})
 }
 
 func handleHealthz() http.HandlerFunc {
 	return func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		_ = json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
+		_ = httputil.WriteJSON(w, http.StatusOK, map[string]string{"status": "ok"})
 	}
 }
 
@@ -75,20 +74,9 @@ func recoverer(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		defer func() {
 			if rec := recover(); rec != nil {
-				w.Header().Set("Content-Type", "application/json; charset=utf-8")
-				w.WriteHeader(http.StatusInternalServerError)
-				_, _ = w.Write([]byte("{\"error\":\"internal server error\"}\n"))
+				httputil.WriteError(w, http.StatusInternalServerError, "internal server error")
 			}
 		}()
 		next.ServeHTTP(w, r)
 	})
-}
-
-func encode[T any](w http.ResponseWriter, _ *http.Request, status int, v T) error {
-	w.Header().Set("Content-Type", "application/json; charset=utf-8")
-	w.WriteHeader(status)
-	if err := json.NewEncoder(w).Encode(v); err != nil {
-		return fmt.Errorf("encode json: %w", err)
-	}
-	return nil
 }
