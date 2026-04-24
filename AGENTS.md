@@ -91,7 +91,7 @@ Address precedence (`fieldservice`): `ADDRESS` > `PORT` > `:8080`.
 - **`make dev` only kills the foreground process:** The fieldservice (`go run ./cmd/fieldservice &`) runs in background. It exits cleanly via `signal.NotifyContext`, but a crash leaves it running.
 - **`web/Dockerfile` is artifact-only:** Final stage is `FROM scratch` with only `/dist`. Not a runnable image.
 - **Go linting:** `.golangci.yml` enables `revive` with the `exported` rule — all exported symbols must have doc comments. `max-issues-per-linter: 0` surfaces every issue. Generated `*.pb.go` files are excluded from lint.
-- **External Go dependencies:** `go.mod` now includes `lib/pq`, `grpc`, `protobuf`, and `golang-migrate`. The repo is no longer stdlib-only.
+- **External Go dependencies:** `go.mod` now includes `lib/pq`, `grpc`, `protobuf`, `golang-migrate`, and `testcontainers`. The repo is no longer stdlib-only.
 
 ## Migrations
 
@@ -140,6 +140,7 @@ internal/userservice/migrations/
 - fieldservice handlers: `internal/fieldservice/handlers/`
 - Shared JSON helpers: `internal/httputil/`
 - Shared DB pool: `internal/db/`
+- Shared migration engine: `internal/migrate/` (used by `cmd/migrate` and tests)
 - userservice config: `internal/userservice/config/`
 - userservice gRPC implementation: `internal/userservice/grpcserver/`
 - userservice HTTP wrapper: `internal/userservice/httpserver/`
