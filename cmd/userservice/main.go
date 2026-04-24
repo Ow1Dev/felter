@@ -26,8 +26,8 @@ import (
 
 func main() {
 	ctx := context.Background()
-	if err := run(ctx, os.Args, os.Getenv, os.Stdin, os.Stdout, os.Stderr); err != nil {
-		fmt.Fprintf(os.Stderr, "%s\n", err)
+	if err := run(ctx, os.Args, config.LoadFromEnv, os.Stdin, os.Stdout, os.Stderr); err != nil {
+		_, _ = fmt.Fprintf(os.Stderr, "%s\n", err)
 		os.Exit(1)
 	}
 }
@@ -35,11 +35,14 @@ func main() {
 func run(
 	ctx context.Context,
 	_ []string,
-	getenv func(string) string,
+	loadConfig func(func(string) string) (config.Config, error),
 	_ io.Reader,
 	_, stderr io.Writer,
 ) error {
-	cfg := config.LoadFromEnv(getenv)
+	cfg, err := loadConfig(os.Getenv)
+	if err != nil {
+		return fmt.Errorf("config: %w", err)
+	}
 
 	pool, err := db.Open(cfg.DatabaseDSN)
 	if err != nil {
