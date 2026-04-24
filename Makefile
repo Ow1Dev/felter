@@ -25,7 +25,7 @@ migrate:
 	@DATABASE_DSN=$${DATABASE_DSN:-postgres://felter:felter@localhost:5432/felter?sslmode=disable} go run ./cmd/migrate
 
 up:
-	@docker compose up -d postgres
+	@docker compose up -d
 
 down:
 	@docker compose down

@@ -5,6 +5,8 @@ import (
 	"context"
 	"database/sql"
 	"io"
+	"path/filepath"
+	"runtime"
 	"testing"
 	"time"
 
@@ -49,6 +51,32 @@ func StartPostgres(t *testing.T) *sql.DB {
 		t.Fatalf("connection string: %v", err)
 	}
 
+	// Use a dedicated connection for migrations; golang-migrate closes the
+	// underlying driver (and therefore the *sql.DB) when m.Close() is called.
+	migratePool, err := db.Open(connStr)
+	if err != nil {
+		t.Fatalf("open db for migrations: %v", err)
+	}
+
+	rootDir := projectRoot()
+	services, err := migrate.DiscoverServices(filepath.Join(rootDir, "internal"))
+	if err != nil {
+		t.Fatalf("discover migrations: %v", err)
+	}
+	if len(services) > 0 {
+		results := migrate.Up(migratePool, services, io.Discard, io.Discard)
+		for _, res := range results {
+			if res.Err != nil {
+				t.Fatalf("migrate %s: %v", res.Service, res.Err)
+			}
+			t.Logf("[OK] %s: applied %d migration(s)", res.Service, res.Applied)
+		}
+	} else {
+		t.Log("no migration directories found")
+	}
+	// migrate.Up closed migratePool via m.Close(); do not use it again.
+
+	// Open a fresh pool for the actual test code.
 	pool, err := db.Open(connStr)
 	if err != nil {
 		t.Fatalf("open db: %v", err)
@@ -60,23 +88,12 @@ func StartPostgres(t *testing.T) *sql.DB {
 		}
 	})
 
-	// Apply all discovered migrations exactly as cmd/migrate does.
-	services, err := migrate.DiscoverServices("internal")
-	if err != nil {
-		t.Fatalf("discover migrations: %v", err)
-	}
-	if len(services) == 0 {
-		t.Log("no migration directories found")
-		return pool
-	}
-
-	results := migrate.Up(pool, services, io.Discard, io.Discard)
-	for _, res := range results {
-		if res.Err != nil {
-			t.Fatalf("migrate %s: %v", res.Service, res.Err)
-		}
-		t.Logf("[OK] %s: applied %d migration(s)", res.Service, res.Applied)
-	}
-
 	return pool
+}
+
+// projectRoot returns the absolute path to the project root directory
+// (the parent of internal/).
+func projectRoot() string {
+	_, file, _, _ := runtime.Caller(0)
+	return filepath.Dir(filepath.Dir(filepath.Dir(file)))
 }
