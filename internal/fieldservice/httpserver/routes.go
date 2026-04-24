@@ -3,8 +3,8 @@ package httpserver
 import (
 	"net/http"
 
-	"github.com/Ow1Dev/felter/internal/config"
-	"github.com/Ow1Dev/felter/internal/handlers"
+	"github.com/Ow1Dev/felter/internal/fieldservice/config"
+	"github.com/Ow1Dev/felter/internal/fieldservice/handlers"
 	"github.com/Ow1Dev/felter/internal/httputil"
 )
 

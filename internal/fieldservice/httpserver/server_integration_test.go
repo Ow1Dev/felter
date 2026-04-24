@@ -6,7 +6,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/Ow1Dev/felter/internal/config"
+	"github.com/Ow1Dev/felter/internal/fieldservice/config"
 )
 
 func TestServerRoutes(t *testing.T) {

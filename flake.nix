@@ -32,6 +32,7 @@
             nixd
             golangci-lint
             gofumpt
+            protobuf
           ];
         };
       };

@@ -4,7 +4,7 @@ package httpserver
 import (
 	"net/http"
 
-	"github.com/Ow1Dev/felter/internal/config"
+	"github.com/Ow1Dev/felter/internal/fieldservice/config"
 )
 
 // New builds the root handler with routes and middleware.

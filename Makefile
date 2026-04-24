@@ -3,20 +3,32 @@ SHELL := /usr/bin/env bash
 API_ADDR ?= :8080
 WEB_DIR := web
 
-.PHONY: api web dev fmt tidy vet lint test fmt-check
+.PHONY: fieldservice userservice web dev fmt tidy vet lint test fmt-check migrate up down
 
 init:
-	@cd $(WEB_DIR) && bun install 
+	@cd $(WEB_DIR) && bun install
 
-api:
-	@PORT=$${API_ADDR#:} go run ./cmd/api
+fieldservice:
+	@PORT=$${API_ADDR#:} go run ./cmd/fieldservice
+
+userservice:
+	@go run ./cmd/userservice
 
 web:
 	@cd $(WEB_DIR) && bun run start
 
 dev:
-	@PORT=$${API_ADDR#:} go run ./cmd/api & \
+	@PORT=$${API_ADDR#:} go run ./cmd/fieldservice & \
 	cd $(WEB_DIR) && bun run start
+
+migrate:
+	@DATABASE_DSN=$${DATABASE_DSN:-postgres://felter:felter@localhost:5432/felter?sslmode=disable} go run ./cmd/migrate
+
+up:
+	@docker compose up -d postgres
+
+down:
+	@docker compose down
 
 fmt:
 	@gofumpt -w .
