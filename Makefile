@@ -1,5 +1,11 @@
 SHELL := /usr/bin/env bash
 
+# Load environment variables from .env if it exists.
+ifneq (,$(wildcard ./.env))
+	include .env
+	export
+endif
+
 API_ADDR ?= :8080
 WEB_DIR := web
 
@@ -22,7 +28,7 @@ dev:
 	cd $(WEB_DIR) && bun run start
 
 migrate:
-	@DATABASE_DSN=$${DATABASE_DSN:-postgres://felter:felter@localhost:5432/felter?sslmode=disable} go run ./cmd/migrate
+	@go run ./cmd/migrate
 
 up:
 	@docker compose up -d

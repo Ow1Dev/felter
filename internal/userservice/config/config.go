@@ -18,7 +18,7 @@ type Config struct {
 func LoadFromEnv(getenv func(string) string) (Config, error) {
 	dsn := getenv("DATABASE_DSN")
 	if dsn == "" {
-		return Config{}, fmt.Errorf("DATABASE_DSN is required; set it to a postgres connection string (e.g. postgres://user:pass@host:port/db?sslmode=disable)")
+		return Config{}, fmt.Errorf("DATABASE_DSN is required")
 	}
 
 	grpc := getenv("GRPC_ADDRESS")

@@ -28,7 +28,7 @@ func run(
 ) error {
 	dsn := getenv("DATABASE_DSN")
 	if dsn == "" {
-		dsn = "postgres://felter:felter@localhost:5432/felter?sslmode=disable"
+		return fmt.Errorf("DATABASE_DSN is required")
 	}
 
 	pool, err := db.Open(dsn)

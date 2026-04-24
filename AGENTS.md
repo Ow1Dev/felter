@@ -64,10 +64,19 @@ cd web && vitest run src/app/app.spec.ts -t "should create the app"
 | `READ_TIMEOUT` / `WRITE_TIMEOUT` / `IDLE_TIMEOUT` | `15s` / `15s` / `60s` | `time.ParseDuration` format. |
 | `GRPC_ADDRESS` | `:9091` | userservice gRPC bind address. |
 | `HTTP_ADDRESS` | `:9090` | userservice HTTP bind address. |
-| `DATABASE_DSN` | `postgres://felter:felter@localhost:5432/felter?sslmode=disable` | Postgres DSN for userservice and migrate. |
+| `DATABASE_DSN` | — | **Required.** Postgres DSN for userservice and migrate. |
 | `API_ADDR` | `:8080` | Makefile-only variable for fieldservice; stripped of `:` before passing as `PORT`. |
 
 Address precedence (`fieldservice`): `ADDRESS` > `PORT` > `:8080`.
+
+### `.env` file
+
+A `.env` file at the repo root provides defaults for local development. The Makefile loads it automatically (`include .env`) and exports the variables. You can override any value by setting a shell environment variable or editing `.env`.
+
+Current default in `.env`:
+```
+DATABASE_DSN=postgres://felter:felter@localhost:5432/felter?sslmode=disable
+```
 
 ## CI
 
