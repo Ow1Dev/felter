@@ -1,4 +1,4 @@
-// Package main runs the HTTP API server.
+// Package main runs the HTTP fieldservice server.
 package main
 
 import (
@@ -10,8 +10,8 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/Ow1Dev/felter/internal/config"
-	"github.com/Ow1Dev/felter/internal/httpserver"
+	"github.com/Ow1Dev/felter/internal/fieldservice/config"
+	"github.com/Ow1Dev/felter/internal/fieldservice/httpserver"
 )
 
 func main() {
@@ -36,7 +36,7 @@ func run(ctx context.Context, cfg config.Config) error {
 
 	// Start server
 	go func() {
-		log.Printf("api listening on %s", cfg.Address)
+		log.Printf("fieldservice listening on %s", cfg.Address)
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			log.Printf("server error: %v", err)
 		}

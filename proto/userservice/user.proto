@@ -1,0 +1,28 @@
+syntax = "proto3";
+package userservice;
+
+option go_package = "github.com/Ow1Dev/felter/internal/userservice/pb";
+
+service UserService {
+  rpc CreateUser(CreateUserRequest) returns (User);
+}
+
+message User {
+  int64  id           = 1;
+  string email        = 2;
+  string username     = 3;
+  string display_name = 4;
+  string created_at   = 5; // RFC3339
+}
+
+message CreateUserRequest {
+  string email        = 1;
+  string username     = 2;
+  string display_name = 3;
+}
+
+message ListUsersRequest {}
+
+message ListUsersResponse {
+  repeated User users = 1;
+}

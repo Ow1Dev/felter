@@ -24,7 +24,6 @@
             corepack
             angular-language-server
             typescript-language-server
-            docker
             git
             openssl
             gcc
@@ -32,6 +31,8 @@
             nixd
             golangci-lint
             gofumpt
+            protobuf
+            grpcurl
           ];
         };
       };

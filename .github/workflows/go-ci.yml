@@ -8,6 +8,7 @@ on:
       - "go.*"
       - ".golangci.yml"
       - "flake.*"
+      - "proto/**"
 
 jobs:
   lint-test:
