@@ -2,7 +2,7 @@
 // versions:
 // - protoc-gen-go-grpc v1.6.1
 // - protoc             v7.34.0
-// source: user.proto
+// source: proto/userservice/user.proto
 
 package pb
 
@@ -19,7 +19,9 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	UserService_CreateUser_FullMethodName = "/userservice.UserService/CreateUser"
+	UserService_CreateUser_FullMethodName             = "/userservice.UserService/CreateUser"
+	UserService_GetUserFromProvider_FullMethodName    = "/userservice.UserService/GetUserFromProvider"
+	UserService_CreateUserFromProvider_FullMethodName = "/userservice.UserService/CreateUserFromProvider"
 )
 
 // UserServiceClient is the client API for UserService service.
@@ -27,6 +29,8 @@ const (
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type UserServiceClient interface {
 	CreateUser(ctx context.Context, in *CreateUserRequest, opts ...grpc.CallOption) (*User, error)
+	GetUserFromProvider(ctx context.Context, in *GetUserFromProviderRequest, opts ...grpc.CallOption) (*User, error)
+	CreateUserFromProvider(ctx context.Context, in *CreateUserFromProviderRequest, opts ...grpc.CallOption) (*User, error)
 }
 
 type userServiceClient struct {
@@ -47,11 +51,33 @@ func (c *userServiceClient) CreateUser(ctx context.Context, in *CreateUserReques
 	return out, nil
 }
 
+func (c *userServiceClient) GetUserFromProvider(ctx context.Context, in *GetUserFromProviderRequest, opts ...grpc.CallOption) (*User, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(User)
+	err := c.cc.Invoke(ctx, UserService_GetUserFromProvider_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *userServiceClient) CreateUserFromProvider(ctx context.Context, in *CreateUserFromProviderRequest, opts ...grpc.CallOption) (*User, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(User)
+	err := c.cc.Invoke(ctx, UserService_CreateUserFromProvider_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // UserServiceServer is the server API for UserService service.
 // All implementations must embed UnimplementedUserServiceServer
 // for forward compatibility.
 type UserServiceServer interface {
 	CreateUser(context.Context, *CreateUserRequest) (*User, error)
+	GetUserFromProvider(context.Context, *GetUserFromProviderRequest) (*User, error)
+	CreateUserFromProvider(context.Context, *CreateUserFromProviderRequest) (*User, error)
 	mustEmbedUnimplementedUserServiceServer()
 }
 
@@ -64,6 +90,12 @@ type UnimplementedUserServiceServer struct{}
 
 func (UnimplementedUserServiceServer) CreateUser(context.Context, *CreateUserRequest) (*User, error) {
 	return nil, status.Error(codes.Unimplemented, "method CreateUser not implemented")
+}
+func (UnimplementedUserServiceServer) GetUserFromProvider(context.Context, *GetUserFromProviderRequest) (*User, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetUserFromProvider not implemented")
+}
+func (UnimplementedUserServiceServer) CreateUserFromProvider(context.Context, *CreateUserFromProviderRequest) (*User, error) {
+	return nil, status.Error(codes.Unimplemented, "method CreateUserFromProvider not implemented")
 }
 func (UnimplementedUserServiceServer) mustEmbedUnimplementedUserServiceServer() {}
 func (UnimplementedUserServiceServer) testEmbeddedByValue()                     {}
@@ -104,6 +136,42 @@ func _UserService_CreateUser_Handler(srv interface{}, ctx context.Context, dec f
 	return interceptor(ctx, in, info, handler)
 }
 
+func _UserService_GetUserFromProvider_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetUserFromProviderRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(UserServiceServer).GetUserFromProvider(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: UserService_GetUserFromProvider_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UserServiceServer).GetUserFromProvider(ctx, req.(*GetUserFromProviderRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _UserService_CreateUserFromProvider_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CreateUserFromProviderRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(UserServiceServer).CreateUserFromProvider(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: UserService_CreateUserFromProvider_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UserServiceServer).CreateUserFromProvider(ctx, req.(*CreateUserFromProviderRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // UserService_ServiceDesc is the grpc.ServiceDesc for UserService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -115,7 +183,15 @@ var UserService_ServiceDesc = grpc.ServiceDesc{
 			MethodName: "CreateUser",
 			Handler:    _UserService_CreateUser_Handler,
 		},
+		{
+			MethodName: "GetUserFromProvider",
+			Handler:    _UserService_GetUserFromProvider_Handler,
+		},
+		{
+			MethodName: "CreateUserFromProvider",
+			Handler:    _UserService_CreateUserFromProvider_Handler,
+		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "user.proto",
+	Metadata: "proto/userservice/user.proto",
 }

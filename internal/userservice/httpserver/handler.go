@@ -19,7 +19,7 @@ func NewServer(s store.Store) http.Handler {
 
 // addRoutes maps the entire HTTP API surface in one place.
 func addRoutes(mux *http.ServeMux, s store.Store) {
-	mux.Handle("/api/users", handleListUsers(s))
+	mux.Handle("/users", handleListUsers(s))
 	mux.HandleFunc("/healthz", handleHealthz())
 	mux.Handle("/", http.NotFoundHandler())
 }

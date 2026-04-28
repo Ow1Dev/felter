@@ -33,6 +33,30 @@ func (srv *Server) CreateUser(ctx context.Context, req *pb.CreateUserRequest) (*
 	return toProto(u), nil
 }
 
+// GetUserFromProvider handles the GetUserFromProvider RPC.
+func (srv *Server) GetUserFromProvider(ctx context.Context, req *pb.GetUserFromProviderRequest) (*pb.User, error) {
+	if req.Provider == "" || req.ProviderId == "" {
+		return nil, fmt.Errorf("provider and provider_id are required")
+	}
+	u, err := srv.store.GetUserFromProvider(ctx, req.Provider, req.ProviderId)
+	if err != nil {
+		return nil, fmt.Errorf("store get user from provider: %w", err)
+	}
+	return toProto(u), nil
+}
+
+// CreateUserFromProvider handles the CreateUserFromProvider RPC.
+func (srv *Server) CreateUserFromProvider(ctx context.Context, req *pb.CreateUserFromProviderRequest) (*pb.User, error) {
+	if req.Provider == "" || req.ProviderId == "" || req.Email == "" || req.Username == "" {
+		return nil, fmt.Errorf("provider, provider_id, email, and username are required")
+	}
+	u, err := srv.store.CreateUserFromProvider(ctx, req.Provider, req.ProviderId, req.Email, req.Username)
+	if err != nil {
+		return nil, fmt.Errorf("store create user from provider: %w", err)
+	}
+	return toProto(u), nil
+}
+
 func toProto(u *store.User) *pb.User {
 	p := &pb.User{
 		Id:        u.ID,

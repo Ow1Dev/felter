@@ -17,10 +17,15 @@ type User struct {
 	CreatedAt   time.Time
 }
 
+// ErrUserNotFound is returned when a user is not found.
+var ErrUserNotFound = fmt.Errorf("user not found")
+
 // Store defines persistence operations for users.
 type Store interface {
 	CreateUser(ctx context.Context, email, username, displayName string) (*User, error)
 	ListUsers(ctx context.Context) ([]*User, error)
+	GetUserFromProvider(ctx context.Context, provider, providerID string) (*User, error)
+	CreateUserFromProvider(ctx context.Context, provider, providerID, email, username string) (*User, error)
 }
 
 // PostgresStore implements Store with lib/pq.
@@ -78,4 +83,68 @@ func (s *PostgresStore) ListUsers(ctx context.Context) ([]*User, error) {
 		return nil, fmt.Errorf("rows err: %w", err)
 	}
 	return out, nil
+}
+
+func (s *PostgresStore) GetUserFromProvider(ctx context.Context, provider, providerID string) (*User, error) {
+	const q = `
+		SELECT u.id, u.email, u.username, u.display_name, u.created_at
+		FROM users u
+		JOIN user_identities ui ON ui.user_id = u.id
+		WHERE ui.provider = $1 AND ui.provider_id = $2
+	`
+	var u User
+	var dn sql.NullString
+	err := s.db.QueryRowContext(ctx, q, provider, providerID).Scan(
+		&u.ID, &u.Email, &u.Username, &dn, &u.CreatedAt,
+	)
+	if err == sql.ErrNoRows {
+		return nil, ErrUserNotFound
+	}
+	if err != nil {
+		return nil, fmt.Errorf("get user from provider: %w", err)
+	}
+	if dn.Valid {
+		u.DisplayName = &dn.String
+	}
+	return &u, nil
+}
+
+func (s *PostgresStore) CreateUserFromProvider(ctx context.Context, provider, providerID, email, username string) (*User, error) {
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return nil, fmt.Errorf("begin tx: %w", err)
+	}
+	defer func() { _ = tx.Rollback() }()
+
+	var u User
+	var dn sql.NullString
+	const userQ = `
+		INSERT INTO users (email, username)
+		VALUES ($1, $2)
+		RETURNING id, email, username, display_name, created_at
+	`
+	err = tx.QueryRowContext(ctx, userQ, email, username).Scan(
+		&u.ID, &u.Email, &u.Username, &dn, &u.CreatedAt,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("create user: %w", err)
+	}
+
+	const identityQ = `
+		INSERT INTO user_identities (user_id, provider, provider_id)
+		VALUES ($1, $2, $3)
+	`
+	_, err = tx.ExecContext(ctx, identityQ, u.ID, provider, providerID)
+	if err != nil {
+		return nil, fmt.Errorf("create user identity: %w", err)
+	}
+
+	if err := tx.Commit(); err != nil {
+		return nil, fmt.Errorf("commit tx: %w", err)
+	}
+
+	if dn.Valid {
+		u.DisplayName = &dn.String
+	}
+	return &u, nil
 }
