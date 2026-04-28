@@ -9,8 +9,8 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/Ow1Dev/felter/internal/web/config"
-	"github.com/Ow1Dev/felter/internal/web/httpserver"
+	"github.com/Ow1Dev/felter/internal/proxy/config"
+	"github.com/Ow1Dev/felter/internal/proxy/httpserver"
 )
 
 func main() {

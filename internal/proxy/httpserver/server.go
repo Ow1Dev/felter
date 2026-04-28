@@ -10,8 +10,8 @@ import (
 	"time"
 
 	"github.com/Ow1Dev/felter/internal/userservice/pb"
-	"github.com/Ow1Dev/felter/internal/web/config"
-	"github.com/Ow1Dev/felter/internal/web/jwt"
+	"github.com/Ow1Dev/felter/internal/proxy/config"
+	"github.com/Ow1Dev/felter/internal/proxy/jwt"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )

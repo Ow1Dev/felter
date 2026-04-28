@@ -21,13 +21,13 @@ userservice:
 	@go run ./cmd/userservice
 
 proxy:
-	@go run ./cmd/web
+	@go run ./cmd/proxy
 
 web:
 	@cd $(WEB_DIR) && bun run start
 
 dev:
-	@go run ./cmd/web &
+	@go run ./cmd/proxy &
 	@PORT=$${API_ADDR#:} go run ./cmd/fieldservice &
 	cd $(WEB_DIR) && bun run start
 
