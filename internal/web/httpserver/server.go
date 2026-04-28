@@ -150,6 +150,40 @@ func (s *Server) HandleLogout() http.HandlerFunc {
 	}
 }
 
+func (s *Server) HandleMe() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		claims, err := s.validateAuth(r)
+		if err != nil {
+			http.Error(w, "unauthorized", http.StatusUnauthorized)
+			return
+		}
+
+		ctx := context.Background()
+		getResp, err := s.grpcClient.GetUserFromProvider(ctx, &pb.GetUserFromProviderRequest{
+			Provider:   s.provider.Type(),
+			ProviderId: claims.Sub,
+		})
+		if err != nil {
+			http.Error(w, "failed to get user", http.StatusInternalServerError)
+			return
+		}
+
+		userResp, err := s.grpcClient.GetUser(ctx, &pb.GetUserRequest{Id: getResp.Id})
+		if err != nil {
+			http.Error(w, "failed to get user", http.StatusInternalServerError)
+			return
+		}
+
+		s.writeJSON(w, http.StatusOK, map[string]interface{}{
+			"id":           userResp.Id,
+			"email":        userResp.Email,
+			"username":     userResp.Username,
+			"display_name": userResp.DisplayName,
+			"created_at":   userResp.CreatedAt,
+		})
+	}
+}
+
 func (s *Server) validateAuth(r *http.Request) (*jwt.Claims, error) {
 	authHeader := r.Header.Get("Authorization")
 	if authHeader == "" {

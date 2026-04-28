@@ -13,6 +13,14 @@ export interface UserInfo {
   email: string;
 }
 
+export interface CurrentUser {
+  id: number;
+  email: string;
+  username: string;
+  display_name: string | null;
+  created_at: string;
+}
+
 @Injectable({ providedIn: 'root' })
 export class AuthService {
   private readonly TOKEN_KEY = 'felter_auth_token';
@@ -72,6 +80,10 @@ export class AuthService {
 
   getUserInfo(): Observable<UserInfo> {
     return this.http.get<UserInfo>(`${environment.identityUrl}/userinfo`);
+  }
+
+  getCurrentUser(): Observable<CurrentUser> {
+    return this.http.get<CurrentUser>(`${environment.identityUrl}/me`);
   }
 
   private setToken(token: string, email: string): void {

@@ -32,6 +32,7 @@ func run(ctx context.Context, cfg config.Config) error {
 	mux.HandleFunc("/api/auth/callback", srv.HandleCallback())
 	mux.HandleFunc("/api/auth/userinfo", srv.HandleUserInfo())
 	mux.HandleFunc("/api/auth/logout", srv.HandleLogout())
+	mux.HandleFunc("/api/auth/me", srv.HandleMe())
 
 	mux.Handle("/api/field/", srv.HandleFieldProxy())
 	mux.Handle("/api/users/", srv.HandleUserserviceProxy())

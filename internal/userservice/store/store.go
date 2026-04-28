@@ -24,6 +24,7 @@ var ErrUserNotFound = fmt.Errorf("user not found")
 type Store interface {
 	CreateUser(ctx context.Context, email, username, displayName string) (*User, error)
 	ListUsers(ctx context.Context) ([]*User, error)
+	GetUser(ctx context.Context, id int64) (*User, error)
 	GetUserFromProvider(ctx context.Context, provider, providerID string) (*User, error)
 	CreateUserFromProvider(ctx context.Context, provider, providerID, email, username string) (*User, error)
 }
@@ -83,6 +84,23 @@ func (s *PostgresStore) ListUsers(ctx context.Context) ([]*User, error) {
 		return nil, fmt.Errorf("rows err: %w", err)
 	}
 	return out, nil
+}
+
+func (s *PostgresStore) GetUser(ctx context.Context, id int64) (*User, error) {
+	const q = `SELECT id, email, username, display_name, created_at FROM users WHERE id = $1`
+	var u User
+	var dn sql.NullString
+	err := s.db.QueryRowContext(ctx, q, id).Scan(&u.ID, &u.Email, &u.Username, &dn, &u.CreatedAt)
+	if err == sql.ErrNoRows {
+		return nil, ErrUserNotFound
+	}
+	if err != nil {
+		return nil, fmt.Errorf("get user: %w", err)
+	}
+	if dn.Valid {
+		u.DisplayName = &dn.String
+	}
+	return &u, nil
 }
 
 func (s *PostgresStore) GetUserFromProvider(ctx context.Context, provider, providerID string) (*User, error) {

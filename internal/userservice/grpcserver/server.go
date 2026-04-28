@@ -33,6 +33,18 @@ func (srv *Server) CreateUser(ctx context.Context, req *pb.CreateUserRequest) (*
 	return toProto(u), nil
 }
 
+// GetUser handles the GetUser RPC.
+func (srv *Server) GetUser(ctx context.Context, req *pb.GetUserRequest) (*pb.User, error) {
+	if req.Id == 0 {
+		return nil, fmt.Errorf("id is required")
+	}
+	u, err := srv.store.GetUser(ctx, req.Id)
+	if err != nil {
+		return nil, fmt.Errorf("store get user: %w", err)
+	}
+	return toProto(u), nil
+}
+
 // GetUserFromProvider handles the GetUserFromProvider RPC.
 func (srv *Server) GetUserFromProvider(ctx context.Context, req *pb.GetUserFromProviderRequest) (*pb.User, error) {
 	if req.Provider == "" || req.ProviderId == "" {

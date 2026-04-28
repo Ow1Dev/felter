@@ -5,6 +5,7 @@ option go_package = "github.com/Ow1Dev/felter/internal/userservice/pb";
 
 service UserService {
   rpc CreateUser(CreateUserRequest) returns (User);
+  rpc GetUser(GetUserRequest) returns (User);
   rpc GetUserFromProvider(GetUserFromProviderRequest) returns (User);
   rpc CreateUserFromProvider(CreateUserFromProviderRequest) returns (User);
 }
@@ -21,6 +22,10 @@ message CreateUserRequest {
   string email        = 1;
   string username     = 2;
   string display_name = 3;
+}
+
+message GetUserRequest {
+  int64 id = 1;
 }
 
 message GetUserFromProviderRequest {

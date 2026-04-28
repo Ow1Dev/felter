@@ -3,6 +3,8 @@ package httpserver
 
 import (
 	"net/http"
+	"strconv"
+	"strings"
 
 	"github.com/Ow1Dev/felter/internal/httputil"
 	"github.com/Ow1Dev/felter/internal/userservice/store"
@@ -20,6 +22,7 @@ func NewServer(s store.Store) http.Handler {
 // addRoutes maps the entire HTTP API surface in one place.
 func addRoutes(mux *http.ServeMux, s store.Store) {
 	mux.Handle("/users", handleListUsers(s))
+	mux.Handle("/users/", handleGetUser(s))
 	mux.HandleFunc("/healthz", handleHealthz())
 	mux.Handle("/", http.NotFoundHandler())
 }
@@ -56,6 +59,58 @@ func handleListUsers(s store.Store) http.Handler {
 			if u.DisplayName != nil {
 				resp[i].DisplayName = u.DisplayName
 			}
+		}
+
+		_ = httputil.WriteJSON(w, http.StatusOK, resp)
+	})
+}
+
+type userResponse struct {
+	ID        int64   `json:"id"`
+	Email     string  `json:"email"`
+	Username  string  `json:"username"`
+	DisplayName *string `json:"display_name,omitempty"`
+	CreatedAt string  `json:"created_at"`
+}
+
+func handleGetUser(s store.Store) http.HandlerFunc {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			httputil.WriteError(w, http.StatusMethodNotAllowed, "method not allowed")
+			return
+		}
+
+		path := r.URL.Path
+		idStr := strings.TrimPrefix(path, "/users/")
+		if idStr == path {
+			httputil.WriteError(w, http.StatusBadRequest, "missing user id")
+			return
+		}
+
+		id, err := strconv.ParseInt(idStr, 10, 64)
+		if err != nil {
+			httputil.WriteError(w, http.StatusBadRequest, "invalid user id")
+			return
+		}
+
+		user, err := s.GetUser(r.Context(), id)
+		if err != nil {
+			if err == store.ErrUserNotFound {
+				httputil.WriteError(w, http.StatusNotFound, "user not found")
+				return
+			}
+			httputil.WriteError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+
+		resp := userResponse{
+			ID:        user.ID,
+			Email:     user.Email,
+			Username:  user.Username,
+			CreatedAt: user.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
+		}
+		if user.DisplayName != nil {
+			resp.DisplayName = user.DisplayName
 		}
 
 		_ = httputil.WriteJSON(w, http.StatusOK, resp)
