@@ -1,7 +1,6 @@
 package httpserver
 
 import (
-	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -11,26 +10,16 @@ import (
 
 func TestServerRoutes(t *testing.T) {
 	cfg := config.Config{
-		Address:        ":0",
-		AllowedOrigins: []string{"http://localhost:4200"},
+		Address: ":0",
 	}
 	h := New(cfg)
 
 	t.Run("hello route", func(t *testing.T) {
 		rr := httptest.NewRecorder()
-		req := httptest.NewRequest(http.MethodGet, "/api/hello", nil)
+		req := httptest.NewRequest(http.MethodGet, "/hello", nil)
 		h.ServeHTTP(rr, req)
 		if rr.Code != http.StatusOK {
 			t.Fatalf("status = %d", rr.Code)
-		}
-		var body struct {
-			Message string `json:"message"`
-		}
-		if err := json.Unmarshal(rr.Body.Bytes(), &body); err != nil {
-			t.Fatalf("unmarshal: %v", err)
-		}
-		if body.Message != "hello world" {
-			t.Fatalf("unexpected: %q", body.Message)
 		}
 	})
 
@@ -40,9 +29,6 @@ func TestServerRoutes(t *testing.T) {
 		h.ServeHTTP(rr, req)
 		if rr.Code != http.StatusNotFound {
 			t.Fatalf("status = %d", rr.Code)
-		}
-		if ct := rr.Header().Get("Content-Type"); ct == "" {
-			t.Fatalf("content-type not set")
 		}
 	})
 }

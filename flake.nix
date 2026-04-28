@@ -19,6 +19,7 @@
         devShells.default = pkgs.mkShell {
           packages = with pkgs; [
             go
+            gopls
             bun
             nodejs_20
             corepack

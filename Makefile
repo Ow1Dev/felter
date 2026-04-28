@@ -9,7 +9,7 @@ endif
 API_ADDR ?= :8080
 WEB_DIR := web
 
-.PHONY: fieldservice userservice web dev fmt tidy vet lint test fmt-check migrate up down
+.PHONY: fieldservice userservice proxy web dev fmt tidy vet lint test fmt-check migrate up down
 
 init:
 	@cd $(WEB_DIR) && bun install
@@ -20,11 +20,15 @@ fieldservice:
 userservice:
 	@go run ./cmd/userservice
 
+proxy:
+	@go run ./cmd/proxy
+
 web:
 	@cd $(WEB_DIR) && bun run start
 
 dev:
-	@PORT=$${API_ADDR#:} go run ./cmd/fieldservice & \
+	@go run ./cmd/proxy &
+	@PORT=$${API_ADDR#:} go run ./cmd/fieldservice &
 	cd $(WEB_DIR) && bun run start
 
 migrate:
@@ -40,7 +44,7 @@ fmt:
 	@gofumpt -w .
 
 fmt-check:
-	@diff -u <(echo -n) <(gofmt -l . | sed '/^$/d') && echo "format OK" || (echo "Run 'make fmt' to format" && exit 1)
+	@diff -u <(echo -n) <(gofumpt -l . | sed '/^$/d') && echo "format OK" || (echo "Run 'make fmt' to format" && exit 1)
 
 tidy:
 	@go mod tidy
