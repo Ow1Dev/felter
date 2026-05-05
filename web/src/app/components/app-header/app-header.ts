@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { NgpAvatar, NgpAvatarFallback } from 'ng-primitives/avatar';
 import { NgpMenu, NgpMenuItem, NgpMenuTrigger } from 'ng-primitives/menu';
@@ -110,21 +110,11 @@ import { ThemeService } from '../../services/theme.service';
     </button>
   `,
 })
-export class AppHeaderComponent implements OnInit {
+export class AppHeaderComponent {
   protected readonly themeService = inject(ThemeService);
-  private readonly router = inject(Router);
-  private readonly authService = inject(AuthService);
-
-  protected user = signal<CurrentUser | null>(null);
-
-  ngOnInit(): void {
-    if (this.authService.isAuthenticated()) {
-      this.authService.getCurrentUser().subscribe({
-        next: user => this.user.set(user),
-        error: () => this.user.set(null),
-      });
-    }
-  }
+  protected readonly router = inject(Router);
+  protected readonly authService = inject(AuthService);
+  protected readonly user = this.authService.currentUser;
 
   protected goToUserSettings(): void {
     void this.router.navigate(['/settings']);

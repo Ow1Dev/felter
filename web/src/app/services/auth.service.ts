@@ -8,8 +8,6 @@ export interface AuthResponse {
   email: string;
 }
 
-
-
 export interface CurrentUser {
   id: number;
   email: string;
@@ -25,6 +23,7 @@ export class AuthService {
 
   readonly token = signal<string | null>(localStorage.getItem(this.TOKEN_KEY));
   readonly email = signal<string | null>(localStorage.getItem(this.EMAIL_KEY));
+  readonly currentUser = signal<CurrentUser | null>(null);
   readonly isAuthenticated = signal<boolean>(this.token() !== null);
 
   constructor(private http: HttpClient) {}
@@ -49,8 +48,10 @@ export class AuthService {
           next: response => {
             this.setToken(response.token, response.email);
             window.history.replaceState({}, '', window.location.pathname);
-            observer.next(response);
-            observer.complete();
+            this.fetchCurrentUser().then(() => {
+              observer.next(response);
+              observer.complete();
+            });
           },
           error: err => observer.error(err),
         });
@@ -87,11 +88,21 @@ export class AuthService {
     this.isAuthenticated.set(true);
   }
 
+  private fetchCurrentUser(): Promise<void> {
+    return new Promise(resolve => {
+      this.getCurrentUser().subscribe({
+        next: user => { this.currentUser.set(user); resolve(); },
+        error: () => { this.clearToken(); resolve(); },
+      });
+    });
+  }
+
   private clearToken(): void {
     localStorage.removeItem(this.TOKEN_KEY);
     localStorage.removeItem(this.EMAIL_KEY);
     this.token.set(null);
     this.email.set(null);
+    this.currentUser.set(null);
     this.isAuthenticated.set(false);
   }
 }
