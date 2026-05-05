@@ -1,4 +1,4 @@
-import { Injectable, signal } from '@angular/core';
+import { Injectable, signal, computed } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../environments/environment';
@@ -19,12 +19,10 @@ export interface CurrentUser {
 @Injectable({ providedIn: 'root' })
 export class AuthService {
   private readonly TOKEN_KEY = 'felter_auth_token';
-  private readonly EMAIL_KEY = 'felter_auth_email';
 
   readonly token = signal<string | null>(localStorage.getItem(this.TOKEN_KEY));
-  readonly email = signal<string | null>(localStorage.getItem(this.EMAIL_KEY));
   readonly currentUser = signal<CurrentUser | null>(null);
-  readonly isAuthenticated = signal<boolean>(this.token() !== null);
+  readonly isAuthenticated = computed(() => this.token() !== null);
 
   constructor(private http: HttpClient) {
     if (this.isAuthenticated()) {
@@ -50,7 +48,7 @@ export class AuthService {
         .post<AuthResponse>(`${environment.identityUrl}/callback`, { code })
         .subscribe({
           next: response => {
-            this.setToken(response.token, response.email);
+            this.setToken(response.token);
             window.history.replaceState({}, '', window.location.pathname);
             this.fetchCurrentUser().then(() => {
               observer.next(response);
@@ -85,12 +83,9 @@ export class AuthService {
     return this.http.get<CurrentUser>(`${environment.identityUrl}/me`);
   }
 
-  private setToken(token: string, email: string): void {
+  private setToken(token: string): void {
     localStorage.setItem(this.TOKEN_KEY, token);
-    localStorage.setItem(this.EMAIL_KEY, email);
     this.token.set(token);
-    this.email.set(email);
-    this.isAuthenticated.set(true);
   }
 
   private fetchCurrentUser(): Promise<void> {
@@ -104,10 +99,7 @@ export class AuthService {
 
   private clearToken(): void {
     localStorage.removeItem(this.TOKEN_KEY);
-    localStorage.removeItem(this.EMAIL_KEY);
     this.token.set(null);
-    this.email.set(null);
     this.currentUser.set(null);
-    this.isAuthenticated.set(false);
   }
 }
