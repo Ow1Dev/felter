@@ -13,10 +13,9 @@ func New(cfg config.Config) http.Handler {
 
 	addRoutes(mux, cfg)
 
-	// Wrap with middleware: recover -> cors -> logger
+	// Wrap with middleware: recover -> logger
 	var h http.Handler = mux
 	h = recoverer(h)
-	h = cors(cfg.AllowedOrigins)(h)
 	h = logger(h)
 	return h
 }
