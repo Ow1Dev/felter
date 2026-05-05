@@ -13,6 +13,8 @@ WEB_DIR := web
 
 init:
 	@cd $(WEB_DIR) && bun install
+	@docker compose up -d
+	@make migrate
 
 web:
 	@cd $(WEB_DIR) && bun start
@@ -35,7 +37,7 @@ up:
 down:
 	@docker compose down
 
-dev: up dev-app
+dev: dev-app
 
 dev-app:
 	@process-compose up -f process-compose.yml -d
