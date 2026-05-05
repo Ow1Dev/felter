@@ -14,6 +14,7 @@ WEB_DIR := web
 init:
 	@cd $(WEB_DIR) && bun install
 	@docker compose up -d
+	@for i in $$(seq 1 30); do docker exec felter-postgres-1 pg_isready -U felter > /dev/null 2>&1 && break || true; sleep 1; done
 	@make migrate
 
 web:
