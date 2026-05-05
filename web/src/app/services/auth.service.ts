@@ -26,7 +26,11 @@ export class AuthService {
   readonly currentUser = signal<CurrentUser | null>(null);
   readonly isAuthenticated = signal<boolean>(this.token() !== null);
 
-  constructor(private http: HttpClient) {}
+  constructor(private http: HttpClient) {
+    if (this.isAuthenticated()) {
+      this.fetchCurrentUser();
+    }
+  }
 
   login(): void {
     window.location.href = `${environment.identityUrl}/login`;
