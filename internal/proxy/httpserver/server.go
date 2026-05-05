@@ -125,19 +125,7 @@ func (s *Server) HandleCallback() http.HandlerFunc {
 	}
 }
 
-func (s *Server) HandleUserInfo() http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		claims, err := s.validateAuth(r)
-		if err != nil {
-			http.Error(w, "unauthorized", http.StatusUnauthorized)
-			return
-		}
-		_ = json.NewEncoder(w).Encode(map[string]string{
-			"sub":   claims.Sub,
-			"email": claims.Email,
-		})
-	}
-}
+
 
 func (s *Server) HandleLogout() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {

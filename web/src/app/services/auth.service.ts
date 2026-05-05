@@ -8,10 +8,7 @@ export interface AuthResponse {
   email: string;
 }
 
-export interface UserInfo {
-  sub: string;
-  email: string;
-}
+
 
 export interface CurrentUser {
   id: number;
@@ -76,10 +73,6 @@ export class AuthService {
           },
         });
     });
-  }
-
-  getUserInfo(): Observable<UserInfo> {
-    return this.http.get<UserInfo>(`${environment.identityUrl}/userinfo`);
   }
 
   getCurrentUser(): Observable<CurrentUser> {

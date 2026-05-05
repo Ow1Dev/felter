@@ -19,54 +19,54 @@ type Config struct {
 }
 
 func LoadFromEnv(getenv func(string) string) (Config, error) {
-	httpAddr := getenv("WEB_HTTP_ADDRESS")
+	httpAddr := getenv("PROXY_HTTP_ADDRESS")
 	if httpAddr == "" {
-		httpAddr = ":9092"
+		return Config{}, fmt.Errorf("PROXY_HTTP_ADDRESS is required")
 	}
 
-	secret := getenv("WEB_JWT_SECRET")
+	secret := getenv("PROXY_JWT_SECRET")
 	if secret == "" {
-		return Config{}, fmt.Errorf("WEB_JWT_SECRET is required")
+		return Config{}, fmt.Errorf("PROXY_JWT_SECRET is required")
 	}
 
-	keycloakURL := getenv("WEB_KEYCLOAK_URL")
+	keycloakURL := getenv("PROXY_KEYCLOAK_URL")
 	if keycloakURL == "" {
-		return Config{}, fmt.Errorf("WEB_KEYCLOAK_URL is required")
+		return Config{}, fmt.Errorf("PROXY_KEYCLOAK_URL is required")
 	}
 
-	realm := getenv("WEB_KEYCLOAK_REALM")
+	realm := getenv("PROXY_KEYCLOAK_REALM")
 	if realm == "" {
-		return Config{}, fmt.Errorf("WEB_KEYCLOAK_REALM is required")
+		return Config{}, fmt.Errorf("PROXY_KEYCLOAK_REALM is required")
 	}
 
-	clientID := getenv("WEB_KEYCLOAK_CLIENT_ID")
+	clientID := getenv("PROXY_KEYCLOAK_CLIENT_ID")
 	if clientID == "" {
-		return Config{}, fmt.Errorf("WEB_KEYCLOAK_CLIENT_ID is required")
+		return Config{}, fmt.Errorf("PROXY_KEYCLOAK_CLIENT_ID is required")
 	}
 
-	clientSecret := getenv("WEB_KEYCLOAK_CLIENT_SECRET")
+	clientSecret := getenv("PROXY_KEYCLOAK_CLIENT_SECRET")
 	if clientSecret == "" {
-		return Config{}, fmt.Errorf("WEB_KEYCLOAK_CLIENT_SECRET is required")
+		return Config{}, fmt.Errorf("PROXY_KEYCLOAK_CLIENT_SECRET is required")
 	}
 
-	redirectURI := getenv("WEB_KEYCLOAK_REDIRECT_URI")
+	redirectURI := getenv("PROXY_KEYCLOAK_REDIRECT_URI")
 	if redirectURI == "" {
-		return Config{}, fmt.Errorf("WEB_KEYCLOAK_REDIRECT_URI is required")
+		return Config{}, fmt.Errorf("PROXY_KEYCLOAK_REDIRECT_URI is required")
 	}
 
-	grpcAddr := getenv("WEB_USERSERVICE_GRPC_ADDR")
+	grpcAddr := getenv("PROXY_USERSERVICE_GRPC_ADDR")
 	if grpcAddr == "" {
-		grpcAddr = ":9091"
+		return Config{}, fmt.Errorf("PROXY_USERSERVICE_GRPC_ADDR is required")
 	}
 
-	fieldURL := getenv("WEB_FIELD_URL")
+	fieldURL := getenv("PROXY_FIELD_URL")
 	if fieldURL == "" {
-		fieldURL = "http://localhost:8080"
+		return Config{}, fmt.Errorf("PROXY_FIELD_URL is required")
 	}
 
-	userserviceURL := getenv("WEB_USERSERVICE_URL")
+	userserviceURL := getenv("PROXY_USERSERVICE_URL")
 	if userserviceURL == "" {
-		userserviceURL = "http://localhost:9090"
+		return Config{}, fmt.Errorf("PROXY_USERSERVICE_URL is required")
 	}
 
 	return Config{
