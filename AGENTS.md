@@ -2,163 +2,88 @@ Felter Repo Guidance (High-Signal Only)
 
 ## Scope
 
-Three parts: Go **fieldservice** HTTP API, Go **userservice** (gRPC + HTTP), and Angular 21 SPA in `web/`.  
-Module: `github.com/Ow1Dev/felter`, Go 1.24.
-
-- **fieldservice** — stateless HTTP API (`cmd/fieldservice`). `GET /api/hello` → `{"message":"hello world"}`.
-- **userservice** — stateful gRPC (`:9091`) + HTTP (`:9090`) API (`cmd/userservice`). Postgres-backed. Proto definitions in `proto/userservice/`.
-- **Shared database** — single Postgres container. Migrations live per-service under `internal/<service>/migrations/` and are applied by `cmd/migrate`.
-
-## Entrypoints
-
-- **fieldservice**: `cmd/fieldservice/main.go`. Wires `internal/fieldservice/httpserver`.
-- **userservice**: `cmd/userservice/main.go`. Boots gRPC + HTTP listeners; imports `internal/userservice/grpcserver`, `internal/userservice/httpserver`, `internal/userservice/store`.
-- **migrate**: `cmd/migrate/main.go`. Uses `golang-migrate/migrate` library. Discovers `internal/<service>/migrations/`, creates per-service tracking tables (`<service>_migrations`), applies pending up migrations. Idempotent — safe to run multiple times.
-- **Web**: `web/src/main.ts` bootstraps a standalone Angular app. Active root template is the **inline `template:`** in `app.ts` — `app.html` is a dead CLI scaffold file.
-- `app.routes.ts` exports `Routes = []` (no routes yet). `HelloService` calls `GET {apiBaseUrl}/api/hello`; dev `apiBaseUrl = 'http://localhost:8080'`, prod `apiBaseUrl = '/api'`.
+Go **fieldservice** HTTP API, Go **userservice** (gRPC + HTTP), **proxy** auth service (Keycloak OIDC + JWT), Angular 21 SPA in `web/`. Module: `github.com/Ow1Dev/felter`, Go 1.24.
 
 ## Commands
 
 ```bash
-# Dev
-make dev              # fieldservice in background + Angular dev server in foreground (Ctrl-C kills only frontend)
-make fieldservice     # go run ./cmd/fieldservice
-make userservice      # go run ./cmd/userservice
-make web              # cd web && bun run start  (NOT npm — Makefile uses bun directly)
-make init             # cd web && bun install
-
-# Infra
-make up               # docker compose up -d postgres
-make down             # docker compose down
-make migrate          # go run ./cmd/migrate
-
-# Go
-make fmt              # gofumpt -w .  (NOT gofmt — uses gofumpt, stricter superset)
-make fmt-check        # CI-style diff check
-make tidy             # go mod tidy
-make vet              # go vet ./...
-make lint             # golangci-lint run  (requires Nix shell or manual install)
-make test             # go test ./... -race -count=1
+# Go — binaries to build/
+make fieldservice   # :8080
+make userservice    # gRPC :9091 + HTTP :9090
+make proxy          # :9092
+make migrate        # apply migrations
 
 # Web
-cd web && bun run build           # ng build (default config is PRODUCTION)
-cd web && bun run ng build --configuration development  # explicit dev build
-cd web && bun run vitest run      # CI-style headless tests
-cd web && npx prettier --write .  # format web files
+make web            # bun run start (NOT npm)
+make init           # bun install
+cd web && bun run ng build --configuration development
 
-# Single test — Go
-go test ./internal/fieldservice/handlers/... -run TestHandleHello -race
-go test ./internal/httputil/... -run TestWriteJSONAndError/write_json_ok -race
-
-# Single test — Web (Vitest)
-cd web && vitest run src/app/app.spec.ts -t "should create the app"
+# Go tooling
+make fmt            # gofumpt -w . (NOT gofmt)
+make lint           # golangci-lint run (nix develop)
+make test           # go test ./... -race -count=1
 ```
 
 ## Environment Variables
 
-| Variable | Default | Notes |
-|---|---|---|
-| `ADDRESS` | `:8080` | fieldservice bind address. Overrides `PORT`. |
-| `PORT` | — | Digits only; auto-prefixed with `:`. |
-| `CORS_ALLOWED_ORIGINS` | `http://localhost:4200,http://127.0.0.1:4200` | fieldservice exact-origin allowlist. Empty list → **all origins allowed**. |
-| `READ_TIMEOUT` / `WRITE_TIMEOUT` / `IDLE_TIMEOUT` | `15s` / `15s` / `60s` | `time.ParseDuration` format. |
-| `GRPC_ADDRESS` | `:9091` | userservice gRPC bind address. |
-| `HTTP_ADDRESS` | `:9090` | userservice HTTP bind address. |
-| `DATABASE_DSN` | — | **Required.** Postgres DSN for userservice and migrate. |
-| `API_ADDR` | `:8080` | Makefile-only variable for fieldservice; stripped of `:` before passing as `PORT`. |
+All proxy config vars are **required** (no defaults):
+- `PROXY_HTTP_ADDRESS`, `PROXY_JWT_SECRET`, `PROXY_KEYCLOAK_URL`, `PROXY_KEYCLOAK_REALM`, `PROXY_KEYCLOAK_CLIENT_ID`, `PROXY_KEYCLOAK_CLIENT_SECRET`, `PROXY_KEYCLOAK_REDIRECT_URI`, `PROXY_USERSERVICE_GRPC_ADDR`, `PROXY_FIELD_URL`, `PROXY_USERSERVICE_URL`
 
-Address precedence (`fieldservice`): `ADDRESS` > `PORT` > `:8080`.
+fieldservice: `ADDRESS` > `PORT` > `:8080`. `CORS_ALLOWED_ORIGINS` empty = allow all.
+userservice/migrate: `DATABASE_DSN` required. `GRPC_ADDRESS` default `:9091`, `HTTP_ADDRESS` default `:9090`.
 
-### `.env` file
+`.env` at repo root is auto-loaded by Makefile.
 
-A `.env` file at the repo root provides defaults for local development. The Makefile loads it automatically (`include .env`) and exports the variables. You can override any value by setting a shell environment variable or editing `.env`.
+## Auth Flow (proxy + Angular)
 
-Current default in `.env`:
-```
-DATABASE_DSN=postgres://felter:felter@localhost:5432/felter?sslmode=disable
-```
+1. `AuthService.login()` → `window.location.href = ${identityUrl}/login` → Keycloak
+2. Keycloak → redirect to `/callback?code=...`
+3. `CallbackPageComponent` → POST to `/api/auth/callback` → JWT + email stored
+4. `AuthService.currentUser` signal populated via `/api/auth/me`
+5. On reload: `AuthService` constructor checks token, fetches `/me` if authenticated
+6. Logout: `AppHeaderComponent` → fetch POST `/api/auth/logout` → 302 to Keycloak logout → redirect to `/callback` → `/login`
 
-## CI
+**Auth guard** (`authGuard`) redirects unauthenticated users to `${environment.identityUrl}/login`.
 
-**`.github/workflows/web-ci.yml`** — triggers on `web/**` or `flake.*` changes, runs inside `nix develop`:
-1. `bun install`
-2. `bun run ng build --configuration production`
-3. `bun run test` (= Vitest via Angular CLI)
+**Proxy routes**: Use `HandleProxy(targetURL, pathPrefix)` to add new proxied endpoints. Route in `main.go` with `mux.Handle("/api/field/", srv.HandleProxy(cfg.FieldURL, "/api/field"))`.
 
-**`.github/workflows/go-ci.yml`** — triggers on `cmd/**`, `internal/**`, `go.*`, `.golangci.yml`, `flake.*`, `proto/**`, runs inside `nix develop`:
-1. `go mod tidy`
-2. `golangci-lint run`
-3. `go vet ./...`
-4. `go test ./... -race -count=1`
+## Architecture
+
+| Component | Notes |
+|---|---|
+| `cmd/proxy/` | Auth proxy. Keycloak OIDC, issues JWTs. Endpoints: `/api/auth/login`, `/callback`, `/logout`, `/me` |
+| `cmd/fieldservice/` | Stateless HTTP API. `GET /api/hello` |
+| `cmd/userservice/` | gRPC + HTTP. Postgres-backed. Proto in `proto/userservice/` |
+| `cmd/migrate/` | Applies `.up.sql` migrations. Per-service tracking tables |
+| `web/src/app/` | Angular SPA. `app.ts` template is inline. Environments: `web/src/environments/` |
 
 ## Gotchas
 
-- **`gofumpt` not `gofmt`:** `make fmt` applies `gofumpt -w .`. Bare `gofmt` does not satisfy the linter.
-- **`make web` uses `bun`, not npm:** If Bun is absent, run npm equivalents manually; the Makefile does not fall back automatically.
-- **Angular build default is production:** `angular.json` sets `"defaultConfiguration": "production"`. Bare `ng build` builds prod. Dev requires `--configuration development`.
-- **`recoverer` inlines JSON 500 as a raw string literal** in `internal/fieldservice/httpserver/middleware.go` to avoid an import cycle with `httputil`. Do not refactor it to use `httputil.WriteError` without resolving that cycle.
-- **`make dev` only kills the foreground process:** The fieldservice (`go run ./cmd/fieldservice &`) runs in background. It exits cleanly via `signal.NotifyContext`, but a crash leaves it running.
-- **`web/Dockerfile` is artifact-only:** Final stage is `FROM scratch` with only `/dist`. Not a runnable image.
-- **Go linting:** `.golangci.yml` enables `revive` with the `exported` rule — all exported symbols must have doc comments. `max-issues-per-linter: 0` surfaces every issue. Generated `*.pb.go` files are excluded from lint.
-- **External Go dependencies:** `go.mod` now includes `lib/pq`, `grpc`, `protobuf`, `golang-migrate`, and `testcontainers`. The repo is no longer stdlib-only.
+- **`gofumpt` not `gofmt`**: linter requires gofumpt
+- **`make web` uses bun**: not npm
+- **Angular build default = production**: use `--configuration development` for dev
+- **`recoverer` inlines JSON 500 as raw string**: avoids import cycle with `httputil`
+- **Go linting**: `revive` `exported` rule requires doc comments on all exported symbols
+- **`web/Dockerfile` is artifact-only**: final stage is `FROM scratch` with only `/dist`
+- **Generated `*.pb.go`**: excluded from lint
 
 ## Migrations
 
-Migrations are managed by `cmd/migrate` using the `golang-migrate/migrate` library (not a shell-out to a CLI binary).
-
-### Per-service isolation
-
-Each service has its own migration directory and its own tracking table in Postgres:
-
-| Service | Directory | Tracking Table |
-|---|---|---|
-| `userservice` | `internal/userservice/migrations/` | `userservice_migrations` |
-| `fieldservice` | `internal/fieldservice/migrations/` | `fieldservice_migrations` |
-
-This keeps services fully independent — one can be rolled back without affecting the other.
-
-### Naming convention
-
-Every migration is a pair:
-
-```
-{version}_{description}.up.sql
-{version}_{description}.down.sql
-```
-
-Example:
-```
-internal/userservice/migrations/
-  001_create_users.up.sql
-  001_create_users.down.sql
-```
-
-### Idempotency
-
-`make migrate` is safe to run multiple times. Each service is applied only up to its latest version. If already at the latest version, the output shows `already up to date`.
-
-### Adding a new service
-
-1. Create `internal/<service>/migrations/` (must contain at least one `.sql` file)
-2. Write `{NNN}_{name}.up.sql` and matching `.down.sql`
-3. Run `make migrate` — it will be discovered automatically
+Each service has its own directory and tracking table (`<service>_migrations`). `make migrate` is idempotent. Naming: `{NNN}_{name}.up.sql` / `.down.sql` pairs.
 
 ## Where Things Live
 
-- fieldservice wiring: `internal/fieldservice/httpserver/` (server, routes, cors, middleware)
-- fieldservice handlers: `internal/fieldservice/handlers/`
-- Shared JSON helpers: `internal/httputil/`
-- Shared DB pool: `internal/db/`
-- Shared migration engine: `internal/migrate/` (used by `cmd/migrate` and tests)
-- userservice config: `internal/userservice/config/`
-- userservice gRPC implementation: `internal/userservice/grpcserver/`
-- userservice HTTP wrapper: `internal/userservice/httpserver/`
-- userservice persistence: `internal/userservice/store/`
-- userservice migrations: `internal/userservice/migrations/`
-- userservice protobuf: `proto/userservice/` and generated code in `internal/userservice/pb/`
-- Angular app: `web/src/app/`; environments: `web/src/environments/`
-- Agent skill packs: `.agents/skills/golang-pro/`, `.agents/skills/angular-developer/`
+- Proxy: `cmd/proxy/`, `internal/proxy/` (config, httpserver, jwt)
+- fieldservice: `internal/fieldservice/httpserver/`, `internal/fieldservice/handlers/`
+- userservice: `internal/userservice/grpcserver/`, `internal/userservice/httpserver/`, `internal/userservice/store/`
+- Shared: `internal/httputil/`, `internal/db/`, `internal/migrate/`
+- Angular: `web/src/app/`; environments: `web/src/environments/`
+
+## CI
+
+- `go-ci.yml`: `go mod tidy` → `golangci-lint run` → `go vet ./...` → `go test ./... -race -count=1`
+- `web-ci.yml`: `bun install` → `bun run ng build --configuration production` → `bun run test`
 
 ## Nix Dev Shell
 
-`nix develop` provides `go`, `bun`, `nodejs_20`, `golangci-lint`, `gofumpt`, `protobuf`, Angular language server — matches CI exactly. Optional locally if you already have the right versions.
+Provides: `go`, `bun`, `nodejs_20`, `golangci-lint`, `gofumpt`, `protobuf`, Angular language server. Matches CI exactly.
