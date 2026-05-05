@@ -14,6 +14,9 @@ WEB_DIR := web
 init:
 	@cd $(WEB_DIR) && bun install
 
+web:
+	@cd $(WEB_DIR) && bun start
+
 fieldservice:
 	@go build -o build/fieldservice ./cmd/fieldservice && PORT=$${API_ADDR#:} ./build/fieldservice
 
