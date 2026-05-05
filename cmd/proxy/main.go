@@ -34,8 +34,8 @@ func run(ctx context.Context, cfg config.Config) error {
 	mux.HandleFunc("/api/auth/logout", srv.HandleLogout())
 	mux.HandleFunc("/api/auth/me", srv.HandleMe())
 
-	mux.Handle("/api/field/", srv.HandleFieldProxy())
-	mux.Handle("/api/users/", srv.HandleUserserviceProxy())
+	mux.Handle("/api/field/", srv.HandleProxy(cfg.FieldURL, "/api/field"))
+	mux.Handle("/api/users/", srv.HandleProxy(cfg.UserserviceURL, "/api/users"))
 
 	mux.HandleFunc("/healthz", func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusOK)
