@@ -21,6 +21,7 @@ import {
   UserRound,
   Users,
   Wrench,
+  LogOut,
 } from 'lucide-angular';
 
 import { routes } from './app.routes';
@@ -40,6 +41,7 @@ const icons = {
   PanelLeftClose,
   PanelLeftOpen,
   Settings,
+  LogOut,
   Search,
   Sun,
   UserRound,

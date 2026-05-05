@@ -32,6 +32,14 @@ export class CallbackPageComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
+    const params = new URLSearchParams(window.location.search);
+    const code = params.get('code');
+
+    if (!code) {
+      this.router.navigate(['/login']);
+      return;
+    }
+
     this.authService.handleCallback().subscribe({
       next: () => {
         this.router.navigate(['/']);

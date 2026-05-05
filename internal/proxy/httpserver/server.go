@@ -129,12 +129,12 @@ func (s *Server) HandleCallback() http.HandlerFunc {
 
 func (s *Server) HandleLogout() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		_, err := s.validateAuth(r)
-		if err != nil {
-			http.Error(w, "unauthorized", http.StatusUnauthorized)
-			return
-		}
-		s.writeJSON(w, http.StatusOK, map[string]string{"message": "logged out"})
+		logoutURL := fmt.Sprintf("%s/realms/%s/protocol/openid-connect/logout?redirect_uri=%s",
+			s.cfg.KeycloakURL,
+			s.cfg.KeycloakRealm,
+			s.cfg.KeycloakRedirectURI,
+		)
+		http.Redirect(w, r, logoutURL, http.StatusFound)
 	}
 }
 

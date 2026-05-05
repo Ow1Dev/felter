@@ -72,9 +72,10 @@ export class AuthService {
             observer.next();
             observer.complete();
           },
-          error: err => {
+          error: () => {
             this.clearToken();
-            observer.error(err);
+            observer.next();
+            observer.complete();
           },
         });
     });
