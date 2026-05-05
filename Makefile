@@ -9,7 +9,7 @@ endif
 API_ADDR ?= :8080
 WEB_DIR := web
 
-.PHONY: fieldservice userservice proxy migrate web fmt tidy vet lint test fmt-check up down
+.PHONY: dev dev-app down-app start-fieldservice start-userservice start-proxy start-web fieldservice userservice proxy migrate web fmt tidy vet lint test fmt-check up down
 
 init:
 	@cd $(WEB_DIR) && bun install
@@ -18,22 +18,42 @@ web:
 	@cd $(WEB_DIR) && bun start
 
 fieldservice:
-	@go build -o build/fieldservice ./cmd/fieldservice && PORT=$${API_ADDR#:} ./build/fieldservice
+	@go build -buildvcs=false -o build/fieldservice ./cmd/fieldservice && PORT=$${API_ADDR#:} ./build/fieldservice
 
 userservice:
-	@go build -o build/userservice ./cmd/userservice && ./build/userservice
+	@go build -buildvcs=false -o build/userservice ./cmd/userservice && ./build/userservice
 
 proxy:
-	@go build -o build/proxy ./cmd/proxy && ./build/proxy
+	@go build -buildvcs=false -o build/proxy ./cmd/proxy && ./build/proxy
 
 migrate:
-	@go build -o build/migrate ./cmd/migrate && ./build/migrate
+	@go build -buildvcs=false -o build/migrate ./cmd/migrate && ./build/migrate
 
 up:
 	@docker compose up -d
 
 down:
 	@docker compose down
+
+dev: up dev-app
+
+dev-app:
+	@process-compose up -f process-compose.yml -d
+
+down-app:
+	@process-compose down -f process-compose.yml
+
+start-fieldservice:
+	@process-compose up -f process-compose.yml -d fieldservice
+
+start-userservice:
+	@process-compose up -f process-compose.yml -d userservice
+
+start-proxy:
+	@process-compose up -f process-compose.yml -d proxy
+
+start-web:
+	@process-compose up -f process-compose.yml -d web
 
 fmt:
 	@gofumpt -w .
