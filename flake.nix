@@ -34,6 +34,7 @@
             gofumpt
             protobuf
             grpcurl
+            process-compose
           ];
         };
       };

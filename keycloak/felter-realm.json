@@ -319,7 +319,7 @@
       "enabled": true,
       "alwaysDisplayInConsole": false,
       "clientAuthenticatorType": "client-secret",
-      "secret": "**********",
+      "secret": "GWLugsuBp3akCcEf8adkg985GluOURbQ",
       "redirectUris": [
         "http://localhost:4200/callback"
       ],
@@ -2055,5 +2055,24 @@
   },
   "clientPolicies": {
     "policies": []
-  }
+  },
+  "users": [
+    {
+      "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+      "username": "test_user_1",
+      "email": "test_user_1@example.com",
+      "firstName": "Test",
+      "lastName": "User",
+      "enabled": true,
+      "emailVerified": true,
+      "realmRoles": ["default-roles-felter"],
+      "credentials": [
+        {
+          "type": "password",
+          "value": "passw0rd",
+          "temporary": false
+        }
+      ]
+    }
+  ]
 }
