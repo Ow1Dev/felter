@@ -1,35 +1,39 @@
 package httpserver
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
-	"log"
+	"log/slog"
 	"net/http"
 	"strings"
 	"time"
 
-	"github.com/Ow1Dev/felter/internal/userservice/pb"
+	"github.com/Ow1Dev/felter/internal/log"
 	"github.com/Ow1Dev/felter/internal/proxy/config"
 	"github.com/Ow1Dev/felter/internal/proxy/jwt"
+	"github.com/Ow1Dev/felter/internal/userservice/pb"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
 
 type contextKey struct{}
 
+// Server handles auth and proxy HTTP requests.
 type Server struct {
 	cfg        config.Config
 	httpClient *http.Client
 	grpcConn   *grpc.ClientConn
 	grpcClient pb.UserServiceClient
 	provider   Provider
+	logger     *slog.Logger
 }
 
-func New(cfg config.Config) *Server {
+// New creates a new Server with the given config and logger.
+func New(cfg config.Config, logger *slog.Logger) *Server {
 	conn, err := grpc.NewClient(cfg.UserserviceGRPCAddress, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
-		log.Fatalf("failed to connect to userservice: %v", err)
+		logger.Error("failed to connect to userservice", slog.String("err", err.Error()))
+		panic(err)
 	}
 
 	provider := NewKeycloakProvider(
@@ -46,15 +50,18 @@ func New(cfg config.Config) *Server {
 		grpcConn:   conn,
 		grpcClient: pb.NewUserServiceClient(conn),
 		provider:   provider,
+		logger:     logger,
 	}
 }
 
+// Close releases the gRPC connection.
 func (s *Server) Close() {
 	if s.grpcConn != nil {
 		_ = s.grpcConn.Close()
 	}
 }
 
+// HandleLogin redirects to Keycloak for authentication.
 func (s *Server) HandleLogin() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		state := generateState()
@@ -63,6 +70,7 @@ func (s *Server) HandleLogin() http.HandlerFunc {
 	}
 }
 
+// HandleCallback exchanges the auth code for tokens and creates/fetches the user.
 func (s *Server) HandleCallback() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var body struct {
@@ -73,17 +81,19 @@ func (s *Server) HandleCallback() http.HandlerFunc {
 			return
 		}
 
-		ctx := context.Background()
+		ctx := r.Context()
+		logger := log.WithCorrelationID(ctx, s.logger)
+
 		accessToken, err := s.provider.ExchangeCode(ctx, body.Code, s.cfg.KeycloakRedirectURI)
 		if err != nil {
-			log.Printf("callback: exchange code failed: %v", err)
+			logger.Warn("callback: exchange code failed", slog.String("err", err.Error()))
 			http.Error(w, "failed to exchange code", http.StatusInternalServerError)
 			return
 		}
 
 		userInfo, err := s.provider.GetUserInfo(ctx, accessToken)
 		if err != nil {
-			log.Printf("callback: get user info failed: %v", err)
+			logger.Warn("callback: get user info failed", slog.String("err", err.Error()))
 			http.Error(w, "failed to get user info", http.StatusInternalServerError)
 			return
 		}
@@ -111,7 +121,7 @@ func (s *Server) HandleCallback() http.HandlerFunc {
 			Username:   username,
 		})
 		if err != nil {
-			log.Printf("callback: create user failed: %v", err)
+			logger.Error("callback: create user failed", slog.String("err", err.Error()))
 			http.Error(w, "failed to create user", http.StatusInternalServerError)
 			return
 		}
@@ -125,8 +135,7 @@ func (s *Server) HandleCallback() http.HandlerFunc {
 	}
 }
 
-
-
+// HandleLogout redirects to Keycloak logout endpoint.
 func (s *Server) HandleLogout() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		logoutURL := fmt.Sprintf("%s/realms/%s/protocol/openid-connect/logout?redirect_uri=%s",
@@ -138,6 +147,7 @@ func (s *Server) HandleLogout() http.HandlerFunc {
 	}
 }
 
+// HandleMe returns the current authenticated user's profile.
 func (s *Server) HandleMe() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		claims, err := s.validateAuth(r)
@@ -146,7 +156,7 @@ func (s *Server) HandleMe() http.HandlerFunc {
 			return
 		}
 
-		ctx := context.Background()
+		ctx := r.Context()
 		getResp, err := s.grpcClient.GetUserFromProvider(ctx, &pb.GetUserFromProviderRequest{
 			Provider:   s.provider.Type(),
 			ProviderId: claims.Sub,
