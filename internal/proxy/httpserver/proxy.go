@@ -5,8 +5,11 @@ import (
 	"net/http"
 	"net/http/httputil"
 	"strings"
+
+	"github.com/Ow1Dev/felter/internal/log"
 )
 
+// HandleProxy creates a reverse proxy handler that validates auth and forwards to the target service.
 func (s *Server) HandleProxy(targetURL, pathPrefix string) http.HandlerFunc {
 	proxy := &httputil.ReverseProxy{
 		Director: func(r *http.Request) {
@@ -27,6 +30,7 @@ func (s *Server) HandleProxy(targetURL, pathPrefix string) http.HandlerFunc {
 		ctx := context.WithValue(r.Context(), contextKey{}, claims)
 		r = r.WithContext(ctx)
 		r.Header.Set("X-User-ID", claims.Sub)
+		r.Header.Set("X-Correlation-ID", log.CorrelationID(r.Context()))
 
 		proxy.ServeHTTP(w, r)
 	}

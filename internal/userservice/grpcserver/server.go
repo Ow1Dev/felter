@@ -4,10 +4,14 @@ package grpcserver
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"time"
 
+	"github.com/Ow1Dev/felter/internal/log"
 	"github.com/Ow1Dev/felter/internal/userservice/pb"
 	"github.com/Ow1Dev/felter/internal/userservice/store"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/metadata"
 )
 
 // Server implements the generated gRPC interface.
@@ -19,6 +23,39 @@ type Server struct {
 // NewServer returns a gRPC server backed by store.
 func NewServer(s store.Store) *Server {
 	return &Server{store: s}
+}
+
+// UnaryInterceptor extracts correlation ID from incoming metadata, injects it into context,
+// and logs the request with method, correlation ID, and duration.
+func UnaryInterceptor(ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (any, error) {
+	start := time.Now()
+
+	if md, ok := metadata.FromIncomingContext(ctx); ok {
+		if id := md.Get("x-correlation-id"); len(id) > 0 {
+			ctx = log.SetCorrelationID(ctx, id[0])
+		}
+	}
+
+	corr := log.CorrelationID(ctx)
+	resp, err := handler(ctx, req)
+
+	dur := time.Since(start)
+	if err != nil {
+		slog.Default().Error("grpc request",
+			slog.String("corr", corr),
+			slog.String("method", info.FullMethod),
+			slog.Int64("dur_ms", dur.Milliseconds()),
+			slog.String("err", err.Error()),
+		)
+	} else {
+		slog.Default().Info("grpc request",
+			slog.String("corr", corr),
+			slog.String("method", info.FullMethod),
+			slog.Int64("dur_ms", dur.Milliseconds()),
+		)
+	}
+
+	return resp, err
 }
 
 // CreateUser handles the CreateUser RPC.

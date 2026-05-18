@@ -1,6 +1,7 @@
 package httpserver
 
 import (
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -12,7 +13,7 @@ func TestServerRoutes(t *testing.T) {
 	cfg := config.Config{
 		Address: ":0",
 	}
-	h := New(cfg)
+	h := New(cfg, slog.Default())
 
 	t.Run("hello route", func(t *testing.T) {
 		rr := httptest.NewRecorder()
