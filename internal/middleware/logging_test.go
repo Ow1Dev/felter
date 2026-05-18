@@ -31,15 +31,19 @@ func TestCorrelationID(t *testing.T) {
 		}
 	})
 
-	t.Run("preserves existing ID", func(t *testing.T) {
+	t.Run("always generates new ID even if header provided", func(t *testing.T) {
 		req := httptest.NewRequest(http.MethodGet, "/", nil)
-		req.Header.Set("X-Correlation-ID", "existing-id")
+		req.Header.Set("X-Correlation-ID", "client-provided-id")
 		rr := httptest.NewRecorder()
 
 		CorrelationID(handler).ServeHTTP(rr, req)
 
-		if got := rr.Header().Get("X-Correlation-ID"); got != "existing-id" {
-			t.Errorf("X-Correlation-ID = %q, want %q", got, "existing-id")
+		got := rr.Header().Get("X-Correlation-ID")
+		if got == "client-provided-id" {
+			t.Error("expected proxy-generated ID, not client-provided")
+		}
+		if got == "" {
+			t.Error("expected X-Correlation-ID header to be set")
 		}
 	})
 
@@ -95,7 +99,7 @@ func TestRequestLogger(t *testing.T) {
 			logger := slog.New(slog.NewJSONHandler(&buf, nil))
 
 			req := httptest.NewRequest(tt.method, tt.path, nil)
-			req = req.WithContext(log.SetCorrelationID(req.Context(), "test-corr"))
+			req.Header.Set(correlationHeader, "test-corr")
 			rr := httptest.NewRecorder()
 
 			RequestLogger(logger, tt.handler).ServeHTTP(rr, req)
@@ -165,7 +169,7 @@ func TestRecoverer(t *testing.T) {
 			logger := slog.New(slog.NewJSONHandler(&buf, nil))
 
 			req := httptest.NewRequest(http.MethodGet, "/", nil)
-			req = req.WithContext(log.SetCorrelationID(req.Context(), "test-corr"))
+			req.Header.Set(correlationHeader, "test-corr")
 			rr := httptest.NewRecorder()
 
 			Recoverer(logger, tt.handler).ServeHTTP(rr, req)

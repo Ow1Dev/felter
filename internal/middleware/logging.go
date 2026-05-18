@@ -13,16 +13,12 @@ import (
 
 const correlationHeader = "X-Correlation-ID"
 
-// CorrelationID extracts or generates a correlation ID and stores it in the request context.
-// If the incoming request already has an X-Correlation-ID header, it is preserved;
-// otherwise a new UUID is generated. The header is always set on the request so
-// downstream services receive it.
+// CorrelationID generates a new correlation ID and stores it in the request context.
+// Any client-provided X-Correlation-ID header is ignored; the proxy always generates its own.
+// The header is set on the request so downstream services receive it.
 func CorrelationID(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		id := r.Header.Get(correlationHeader)
-		if id == "" {
-			id = uuid.New().String()
-		}
+		id := uuid.New().String()
 		r.Header.Set(correlationHeader, id)
 
 		ctx := log.SetCorrelationID(r.Context(), id)
@@ -38,7 +34,7 @@ func RequestLogger(logger *slog.Logger, next http.Handler) http.Handler {
 		next.ServeHTTP(ww, r)
 
 		dur := time.Since(start)
-		corr := log.CorrelationID(r.Context())
+		corr := r.Header.Get(correlationHeader)
 
 		logger.Info("request",
 			slog.String("corr", corr),
@@ -55,7 +51,7 @@ func Recoverer(logger *slog.Logger, next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		defer func() {
 			if rec := recover(); rec != nil {
-				corr := log.CorrelationID(r.Context())
+				corr := r.Header.Get(correlationHeader)
 				logger.Error("panic recovered",
 					slog.String("corr", corr),
 					slog.Any("panic", rec),

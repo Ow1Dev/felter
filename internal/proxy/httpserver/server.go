@@ -1,6 +1,7 @@
 package httpserver
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"log/slog"
@@ -14,6 +15,7 @@ import (
 	"github.com/Ow1Dev/felter/internal/userservice/pb"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/metadata"
 )
 
 type contextKey struct{}
@@ -30,7 +32,17 @@ type Server struct {
 
 // New creates a new Server with the given config and logger.
 func New(cfg config.Config, logger *slog.Logger) *Server {
-	conn, err := grpc.NewClient(cfg.UserserviceGRPCAddress, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	corrInterceptor := func(ctx context.Context, method string, req, reply any, cc *grpc.ClientConn, invoker grpc.UnaryInvoker, opts ...grpc.CallOption) error {
+		if id := log.CorrelationID(ctx); id != "" {
+			ctx = metadata.AppendToOutgoingContext(ctx, "x-correlation-id", id)
+		}
+		return invoker(ctx, method, req, reply, cc, opts...)
+	}
+
+	conn, err := grpc.NewClient(cfg.UserserviceGRPCAddress,
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+		grpc.WithUnaryInterceptor(corrInterceptor),
+	)
 	if err != nil {
 		logger.Error("failed to connect to userservice", slog.String("err", err.Error()))
 		panic(err)

@@ -5,6 +5,7 @@ processes:
   fieldservice:
     command: go run ./cmd/fieldservice
     env:
+      - DATABASE_DSN
       - PORT=8080
     restart: manual
 

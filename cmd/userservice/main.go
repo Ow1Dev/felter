@@ -69,7 +69,7 @@ func run(
 	if err != nil {
 		return fmt.Errorf("grpc listen: %w", err)
 	}
-	grpcSrv := grpc.NewServer()
+	grpcSrv := grpc.NewServer(grpc.UnaryInterceptor(grpcserver.UnaryInterceptor))
 	pb.RegisterUserServiceServer(grpcSrv, grpcserver.NewServer(s))
 	wg.Add(1)
 	go func() {
