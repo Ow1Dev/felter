@@ -5,7 +5,7 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"log"
+	"log/slog"
 	"net"
 	"net/http"
 	"os"
@@ -17,6 +17,7 @@ import (
 	"google.golang.org/grpc"
 
 	"github.com/Ow1Dev/felter/internal/db"
+	"github.com/Ow1Dev/felter/internal/log"
 	"github.com/Ow1Dev/felter/internal/userservice/config"
 	"github.com/Ow1Dev/felter/internal/userservice/grpcserver"
 	"github.com/Ow1Dev/felter/internal/userservice/httpserver"
@@ -44,6 +45,9 @@ func run(
 		return fmt.Errorf("config: %w", err)
 	}
 
+	logger := log.New()
+	slog.SetDefault(logger)
+
 	pool, err := db.Open(cfg.DatabaseDSN)
 	if err != nil {
 		return fmt.Errorf("db: %w", err)
@@ -61,41 +65,37 @@ func run(
 
 	var wg sync.WaitGroup
 
-	// gRPC
 	grpcLis, err := net.Listen("tcp", cfg.GRPCAddress)
 	if err != nil {
 		return fmt.Errorf("grpc listen: %w", err)
 	}
-	grpcSrv := grpc.NewServer()
+	grpcSrv := grpc.NewServer(grpc.UnaryInterceptor(grpcserver.UnaryInterceptor))
 	pb.RegisterUserServiceServer(grpcSrv, grpcserver.NewServer(s))
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		log.Printf("grpc listening on %s", cfg.GRPCAddress)
+		logger.Info("grpc listening", slog.String("addr", cfg.GRPCAddress))
 		if err := grpcSrv.Serve(grpcLis); err != nil {
-			log.Printf("grpc error: %v", err)
+			logger.Error("grpc error", slog.String("err", err.Error()))
 		}
 	}()
 
-	// HTTP
 	httpSrv := &http.Server{
 		Addr:    cfg.HTTPAddress,
-		Handler: httpserver.NewServer(s),
+		Handler: httpserver.NewServer(s, logger),
 	}
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		log.Printf("http listening on %s", cfg.HTTPAddress)
+		logger.Info("http listening", slog.String("addr", cfg.HTTPAddress))
 		if err := httpSrv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			log.Printf("http error: %v", err)
+			logger.Error("http error", slog.String("err", err.Error()))
 		}
 	}()
 
-	// Wait for shutdown signal
 	<-ctx.Done()
-	log.Println("shutting down...")
+	logger.Info("shutting down")
 
-	// Graceful shutdown
 	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer shutdownCancel()
 

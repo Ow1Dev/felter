@@ -2,20 +2,23 @@
 package httpserver
 
 import (
+	"log/slog"
 	"net/http"
 	"strconv"
 	"strings"
 
 	"github.com/Ow1Dev/felter/internal/httputil"
+	"github.com/Ow1Dev/felter/internal/middleware"
 	"github.com/Ow1Dev/felter/internal/userservice/store"
 )
 
 // NewServer creates the HTTP handler with all routes and middleware.
-func NewServer(s store.Store) http.Handler {
+func NewServer(s store.Store, logger *slog.Logger) http.Handler {
 	mux := http.NewServeMux()
 	addRoutes(mux, s)
 	var handler http.Handler = mux
-	handler = httputil.Recoverer(handler)
+	handler = middleware.Recoverer(logger, handler)
+	handler = middleware.RequestLogger(logger, handler)
 	return handler
 }
 

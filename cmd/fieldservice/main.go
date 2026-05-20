@@ -3,7 +3,7 @@ package main
 
 import (
 	"context"
-	"log"
+	"log/slog"
 	"net/http"
 	"os"
 	"os/signal"
@@ -12,6 +12,7 @@ import (
 
 	"github.com/Ow1Dev/felter/internal/fieldservice/config"
 	"github.com/Ow1Dev/felter/internal/fieldservice/httpserver"
+	"github.com/Ow1Dev/felter/internal/log"
 )
 
 func main() {
@@ -19,13 +20,17 @@ func main() {
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer cancel()
 	if err := run(ctx, cfg); err != nil {
-		log.Fatalf("fatal: %v", err)
+		slog.Default().Error("fatal", slog.String("err", err.Error()))
+		os.Exit(1)
 	}
 }
 
 // run wires the server and blocks until context cancellation, shutting down gracefully.
 func run(ctx context.Context, cfg config.Config) error {
-	handler := httpserver.New(cfg)
+	logger := log.New()
+	slog.SetDefault(logger)
+
+	handler := httpserver.New(cfg, logger)
 	srv := &http.Server{
 		Addr:         cfg.Address,
 		Handler:      handler,
@@ -34,24 +39,22 @@ func run(ctx context.Context, cfg config.Config) error {
 		IdleTimeout:  cfg.IdleTimeout,
 	}
 
-	// Start server
 	go func() {
-		log.Printf("fieldservice listening on %s", cfg.Address)
+		logger.Info("fieldservice listening", slog.String("addr", cfg.Address))
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			log.Printf("server error: %v", err)
+			logger.Error("server error", slog.String("err", err.Error()))
 		}
 	}()
 
-	// Wait for cancellation
 	<-ctx.Done()
-	log.Printf("shutting down...")
+	logger.Info("shutting down")
 
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	if err := srv.Shutdown(shutdownCtx); err != nil {
-		log.Printf("graceful shutdown failed: %v", err)
+		logger.Error("graceful shutdown failed", slog.String("err", err.Error()))
 		if err := srv.Close(); err != nil {
-			log.Printf("force close error: %v", err)
+			logger.Error("force close error", slog.String("err", err.Error()))
 		}
 	}
 	return nil
