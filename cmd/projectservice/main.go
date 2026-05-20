@@ -5,7 +5,7 @@ package main
 
 import (
 	"context"
-	"log"
+	"log/slog"
 	"net/http"
 	"os"
 	"os/signal"
@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/Ow1Dev/felter/internal/db"
+	"github.com/Ow1Dev/felter/internal/log"
 	"github.com/Ow1Dev/felter/internal/projectservice/config"
 	"github.com/Ow1Dev/felter/internal/projectservice/httpserver"
 	"github.com/Ow1Dev/felter/internal/projectservice/store"
@@ -23,12 +24,16 @@ func main() {
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer cancel()
 	if err := run(ctx, cfg); err != nil {
-		log.Fatalf("fatal: %v", err)
+		slog.Default().Error("fatal", slog.String("err", err.Error()))
+		os.Exit(1)
 	}
 }
 
 // run wires the server and blocks until context cancellation, shutting down gracefully.
 func run(ctx context.Context, cfg config.Config) error {
+	logger := log.New()
+	slog.SetDefault(logger)
+
 	pool, err := db.Open(cfg.DatabaseDSN)
 	if err != nil {
 		return err
@@ -36,7 +41,7 @@ func run(ctx context.Context, cfg config.Config) error {
 	defer func() { _ = pool.Close() }()
 
 	s := store.NewPostgresStore(pool)
-	handler := httpserver.New(cfg, s)
+	handler := httpserver.New(cfg, s, logger)
 
 	srv := &http.Server{
 		Addr:         cfg.Address,
@@ -46,24 +51,22 @@ func run(ctx context.Context, cfg config.Config) error {
 		IdleTimeout:  cfg.IdleTimeout,
 	}
 
-	// Start server
 	go func() {
-		log.Printf("projectservice listening on %s", cfg.Address)
+		logger.Info("projectservice listening", slog.String("addr", cfg.Address))
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			log.Printf("server error: %v", err)
+			logger.Error("server error", slog.String("err", err.Error()))
 		}
 	}()
 
-	// Wait for cancellation
 	<-ctx.Done()
-	log.Printf("shutting down...")
+	logger.Info("shutting down")
 
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	if err := srv.Shutdown(shutdownCtx); err != nil {
-		log.Printf("graceful shutdown failed: %v", err)
+		logger.Error("graceful shutdown failed", slog.String("err", err.Error()))
 		if err := srv.Close(); err != nil {
-			log.Printf("force close error: %v", err)
+			logger.Error("force close error", slog.String("err", err.Error()))
 		}
 	}
 	return nil

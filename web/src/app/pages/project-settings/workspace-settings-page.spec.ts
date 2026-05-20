@@ -3,9 +3,9 @@ import { ActivatedRoute, convertToParamMap, Router } from '@angular/router';
 import { BehaviorSubject } from 'rxjs';
 import { vi } from 'vitest';
 
-import { WorkspaceSettingsPageComponent } from './workspace-settings-page';
-import { WorkspaceService } from '../../services/workspace.service';
-import { WorkspaceRouteService } from '../../services/workspace-route.service';
+import { ProjectSettingsPageComponent } from './project-settings-page';
+import { ProjectService, type Project } from '../../services/project.service';
+import { ProjectRouteService } from '../../services/project-route.service';
 
 class RouterStub {
   navigate = vi.fn().mockResolvedValue(true);
@@ -28,19 +28,28 @@ function createActivatedRouteStub(): ActivatedRoute & { setTab(tab: string | nul
   return stub;
 }
 
-function provideWorkspaceRouteServiceStub() {
+function provideProjectRouteServiceStub() {
   return {
-    provide: WorkspaceRouteService,
-    useFactory: (workspaceService: WorkspaceService) => ({
-      workspace: () => workspaceService.activeWorkspace(),
-      workspaceSlug: () => workspaceService.activeWorkspace().slug,
+    provide: ProjectRouteService,
+    useFactory: (projectService: ProjectService) => ({
+      project: () => projectService.activeProject(),
+      projectSlug: () => projectService.activeProject()?.slug ?? null,
     }),
-    deps: [WorkspaceService],
+    deps: [ProjectService],
   } as const;
 }
 
-describe('WorkspaceSettingsPageComponent', () => {
-  let workspaceService: WorkspaceService;
+const mockProject: Project = {
+  id: '1',
+  slug: 'test-project',
+  name: 'Test Project',
+  description: 'A test project',
+  created_at: new Date().toISOString(),
+  updated_at: new Date().toISOString(),
+};
+
+describe('ProjectSettingsPageComponent', () => {
+  let projectService: ProjectService;
   let routeStub: ActivatedRoute & { setTab(tab: string | null): void };
 
   beforeEach(async () => {
@@ -48,40 +57,30 @@ describe('WorkspaceSettingsPageComponent', () => {
     routeStub.setTab(null);
 
     await TestBed.configureTestingModule({
-      imports: [WorkspaceSettingsPageComponent],
+      imports: [ProjectSettingsPageComponent],
       providers: [
-        WorkspaceService,
+        ProjectService,
         { provide: Router, useClass: RouterStub },
-        provideWorkspaceRouteServiceStub(),
+        provideProjectRouteServiceStub(),
         { provide: ActivatedRoute, useValue: routeStub },
       ],
     }).compileComponents();
 
-    workspaceService = TestBed.inject(WorkspaceService);
+    projectService = TestBed.inject(ProjectService);
+    projectService.projects.set([mockProject]);
+    projectService.activeProject.set(mockProject);
   });
 
   it('renders the general tab by default', () => {
-    const fixture = TestBed.createComponent(WorkspaceSettingsPageComponent);
+    const fixture = TestBed.createComponent(ProjectSettingsPageComponent);
     fixture.detectChanges();
 
-    const heading = fixture.nativeElement.querySelector('[data-testid="workspace-title-heading"]');
-    expect(heading?.textContent).toContain('Workspace title');
-  });
-
-  it('updates the workspace name when the field blurs', () => {
-    const fixture = TestBed.createComponent(WorkspaceSettingsPageComponent);
-    fixture.detectChanges();
-
-    const input: HTMLInputElement = fixture.nativeElement.querySelector('input');
-    input.value = 'Renamed Workspace';
-    input.dispatchEvent(new Event('input'));
-    input.dispatchEvent(new Event('blur'));
-
-    expect(workspaceService.activeWorkspace().name).toBe('Renamed Workspace');
+    const heading = fixture.nativeElement.querySelector('[data-testid="project-title-heading"]');
+    expect(heading?.textContent).toContain('Project title');
   });
 
   it('shows data tab content when navigating to /datafields', () => {
-    const fixture = TestBed.createComponent(WorkspaceSettingsPageComponent);
+    const fixture = TestBed.createComponent(ProjectSettingsPageComponent);
     fixture.detectChanges();
 
     routeStub.setTab('datafields');
