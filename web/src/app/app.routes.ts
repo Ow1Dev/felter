@@ -11,13 +11,13 @@ export const routes: Routes = [
     path: '',
     canActivate: [authGuard],
     loadComponent: () =>
-      import('./pages/workspace-selector/workspace-selector').then(m => m.WorkspaceSelectorComponent),
+      import('./pages/project-selector/project-selector').then(m => m.ProjectSelectorComponent),
   },
   {
-    path: 'no-workspace',
+    path: 'no-project',
     canActivate: [authGuard],
     loadComponent: () =>
-      import('./pages/no-workspace/no-workspace').then(m => m.NoWorkspacePageComponent),
+      import('./pages/no-project/no-project').then(m => m.NoProjectPageComponent),
   },
   {
     path: 'settings',
@@ -34,19 +34,19 @@ export const routes: Routes = [
       import('./pages/project/project').then(m => m.ProjectPageComponent),
   },
   {
-    path: ':workspaceSlug',
+    path: ':projectSlug',
     canActivate: [authGuard],
     loadComponent: () =>
-      import('./layouts/workspace-layout/workspace-layout').then(
-        m => m.WorkspaceLayoutComponent,
+      import('./layouts/project-layout/project-layout').then(
+        m => m.ProjectLayoutComponent,
       ),
     children: [
       {
         path: '',
         pathMatch: 'full',
         loadComponent: () =>
-          import('./pages/workspace-redirect/workspace-redirect').then(
-            m => m.WorkspaceRedirectComponent,
+          import('./pages/project-redirect/project-redirect').then(
+            m => m.ProjectRedirectComponent,
           ),
       },
       {
@@ -63,15 +63,15 @@ export const routes: Routes = [
             path: '',
             pathMatch: 'full',
             loadComponent: () =>
-              import('./pages/workspace-settings/workspace-settings-page').then(
-                m => m.WorkspaceSettingsPageComponent,
+              import('./pages/project-settings/project-settings-page').then(
+                m => m.ProjectSettingsPageComponent,
               ),
           },
           {
             path: ':tab',
             loadComponent: () =>
-              import('./pages/workspace-settings/workspace-settings-page').then(
-                m => m.WorkspaceSettingsPageComponent,
+              import('./pages/project-settings/project-settings-page').then(
+                m => m.ProjectSettingsPageComponent,
               ),
           },
         ],

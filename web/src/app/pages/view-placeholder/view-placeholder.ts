@@ -4,7 +4,7 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import { map } from 'rxjs/operators';
 import { ViewService } from '../../services/view.service';
 
-/** Temporary placeholder for workspace views until real feature pages exist. */
+/** Temporary placeholder for project views until real feature pages exist. */
 @Component({
   standalone: true,
   template: `
