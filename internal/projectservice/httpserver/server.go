@@ -4,15 +4,16 @@ package httpserver
 import (
 	"net/http"
 
-	"github.com/Ow1Dev/felter/internal/fieldservice/config"
 	"github.com/Ow1Dev/felter/internal/httputil"
+	"github.com/Ow1Dev/felter/internal/projectservice/config"
+	"github.com/Ow1Dev/felter/internal/projectservice/store"
 )
 
 // New builds the root handler with routes and middleware.
-func New(cfg config.Config) http.Handler {
+func New(_ config.Config, s store.Store) http.Handler {
 	mux := http.NewServeMux()
 
-	addRoutes(mux, cfg)
+	addRoutes(mux, s)
 
 	// Wrap with middleware: recover -> logger
 	var h http.Handler = mux

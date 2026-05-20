@@ -1,3 +1,4 @@
+// Package main runs the authentication proxy server.
 package main
 
 import (
@@ -30,12 +31,13 @@ func run(ctx context.Context, cfg config.Config) error {
 
 	mux.HandleFunc("/api/auth/login", srv.HandleLogin())
 	mux.HandleFunc("/api/auth/callback", srv.HandleCallback())
-	
+
 	mux.HandleFunc("/api/auth/logout", srv.HandleLogout())
 	mux.HandleFunc("/api/auth/me", srv.HandleMe())
 
 	mux.Handle("/api/field/", srv.HandleProxy(cfg.FieldURL, "/api/field"))
 	mux.Handle("/api/users/", srv.HandleProxy(cfg.UserserviceURL, "/api/users"))
+	mux.Handle("/api/projects/", srv.HandleProxy(cfg.ProjectserviceURL, "/api/projects"))
 
 	mux.HandleFunc("/healthz", func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusOK)

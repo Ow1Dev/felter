@@ -1,3 +1,4 @@
+// Package config loads proxy runtime configuration from environment variables.
 package config
 
 import (
@@ -5,6 +6,7 @@ import (
 	"os"
 )
 
+// Config holds proxy runtime configuration values.
 type Config struct {
 	HTTPAddress            string
 	JWTSecret              string
@@ -16,8 +18,10 @@ type Config struct {
 	UserserviceGRPCAddress string
 	FieldURL               string
 	UserserviceURL         string
+	ProjectserviceURL      string
 }
 
+// LoadFromEnv reads configuration from environment variables.
 func LoadFromEnv(getenv func(string) string) (Config, error) {
 	httpAddr := getenv("PROXY_HTTP_ADDRESS")
 	if httpAddr == "" {
@@ -69,6 +73,11 @@ func LoadFromEnv(getenv func(string) string) (Config, error) {
 		return Config{}, fmt.Errorf("PROXY_USERSERVICE_URL is required")
 	}
 
+	projectserviceURL := getenv("PROXY_PROJECTSERVICE_URL")
+	if projectserviceURL == "" {
+		return Config{}, fmt.Errorf("PROXY_PROJECTSERVICE_URL is required")
+	}
+
 	return Config{
 		HTTPAddress:            httpAddr,
 		JWTSecret:              secret,
@@ -80,9 +89,11 @@ func LoadFromEnv(getenv func(string) string) (Config, error) {
 		UserserviceGRPCAddress: grpcAddr,
 		FieldURL:               fieldURL,
 		UserserviceURL:         userserviceURL,
+		ProjectserviceURL:      projectserviceURL,
 	}, nil
 }
 
+// MustLoadFromEnv reads configuration and exits on error.
 func MustLoadFromEnv() Config {
 	cfg, err := LoadFromEnv(os.Getenv)
 	if err != nil {

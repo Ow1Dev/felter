@@ -9,9 +9,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Ow1Dev/felter/internal/userservice/pb"
 	"github.com/Ow1Dev/felter/internal/proxy/config"
 	"github.com/Ow1Dev/felter/internal/proxy/jwt"
+	"github.com/Ow1Dev/felter/internal/userservice/pb"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
@@ -124,8 +124,6 @@ func (s *Server) HandleCallback() http.HandlerFunc {
 		s.writeJWT(w, jwtToken, createResp.Email)
 	}
 }
-
-
 
 func (s *Server) HandleLogout() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {

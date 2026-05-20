@@ -28,6 +28,12 @@ export const routes: Routes = [
       ),
   },
   {
+    path: 'projects/:slug',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./pages/project/project').then(m => m.ProjectPageComponent),
+  },
+  {
     path: ':workspaceSlug',
     canActivate: [authGuard],
     loadComponent: () =>

@@ -1,7 +1,9 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal, viewChild } from '@angular/core';
 import { Router } from '@angular/router';
 import { LucideAngularModule } from 'lucide-angular';
 import { TextInputComponent } from '../../components/ui/text-input/text-input';
+import { CreateProjectDrawerComponent } from '../../components/create-project-drawer/create-project-drawer';
+import { ProjectService } from '../../services/project.service';
 import { WorkspaceService } from '../../services/workspace.service';
 import { ViewService } from '../../services/view.service';
 
@@ -9,7 +11,7 @@ import { ViewService } from '../../services/view.service';
 @Component({
   selector: 'app-workspace-selector',
   standalone: true,
-  imports: [TextInputComponent, LucideAngularModule],
+  imports: [TextInputComponent, LucideAngularModule, CreateProjectDrawerComponent],
   styles: [`
     :host {
       display: flex;
@@ -19,26 +21,34 @@ import { ViewService } from '../../services/view.service';
   `],
   template: `
     <section class="flex flex-col w-full h-full overflow-hidden">
-      <!-- Header with search -->
+      <!-- Header with search + new project -->
       <div class="flex items-center justify-between gap-4 border-b border-sidebar-border px-8 py-6 w-full" style="background-color: var(--sidebar-accent);">
-        <!-- Left side: empty -->
-        <!-- Left side: empty -->
         <div></div>
 
-         <!-- Right side: search -->
-         <div class="relative w-full max-w-xs">
-           <lucide-icon
-             name="search"
-             [size]="16"
-             class="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none"
-           />
-           <app-text-input
-             placeholder="Search workspaces..."
-             [(value)]="searchQuery"
-             class="[&_input]:pl-14"
-             style="background-color: var(--background);"
-           />
-         </div>
+        <div class="flex items-center gap-3">
+          <button
+            type="button"
+            class="flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+            (click)="openDrawer()"
+          >
+            <lucide-icon name="plus" [size]="16" />
+            New Project
+          </button>
+
+          <div class="relative w-full max-w-xs">
+            <lucide-icon
+              name="search"
+              [size]="16"
+              class="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none"
+            />
+            <app-text-input
+              placeholder="Search workspaces..."
+              [(value)]="searchQuery"
+              class="[&_input]:pl-14"
+              style="background-color: var(--background);"
+            />
+          </div>
+        </div>
       </div>
 
       <!-- Workspace grid -->
@@ -87,6 +97,8 @@ import { ViewService } from '../../services/view.service';
         }
       </div>
     </section>
+
+    <app-create-project-drawer #drawer (create)="onCreateProject($event)" />
   `,
 })
 export class WorkspaceSelectorComponent {
@@ -94,6 +106,9 @@ export class WorkspaceSelectorComponent {
   protected readonly searchQuery = signal('');
   private readonly router = inject(Router);
   private readonly viewService = inject(ViewService);
+  private readonly projectService = inject(ProjectService);
+
+  private readonly drawerRef = viewChild.required<CreateProjectDrawerComponent>('drawer');
 
   protected readonly filteredWorkspaces = computed(() => {
     return this.workspaceService.searchWorkspaces(this.searchQuery());
@@ -111,5 +126,24 @@ export class WorkspaceSelectorComponent {
 
   protected reload(): void {
     window.location.reload();
+  }
+
+  protected openDrawer(): void {
+    this.drawerRef().open();
+  }
+
+  protected onCreateProject(event: { name: string; description: string }): void {
+    const req = {
+      name: event.name,
+      description: event.description || undefined,
+    };
+    this.projectService.createProject(req).subscribe({
+      next: project => {
+        void this.router.navigate(['/projects', project.slug]);
+      },
+      error: err => {
+        console.error('Failed to create project:', err);
+      },
+    });
   }
 }

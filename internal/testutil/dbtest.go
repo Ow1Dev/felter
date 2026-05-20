@@ -74,7 +74,7 @@ func StartPostgres(t *testing.T) *sql.DB {
 	} else {
 		t.Log("no migration directories found")
 	}
-	// migrate.Up closed migratePool via m.Close(); do not use it again.
+	_ = migratePool.Close()
 
 	// Open a fresh pool for the actual test code.
 	pool, err := db.Open(connStr)

@@ -115,12 +115,6 @@ func migrateServiceUp(pool *sql.DB, svc Service, stderr io.Writer) (int, error) 
 	if err != nil {
 		return 0, fmt.Errorf("migrate instance: %w", err)
 	}
-	defer func() {
-		_, dbErr := m.Close()
-		if dbErr != nil {
-			_, _ = fmt.Fprintf(stderr, "migrate close (%s): %v\n", svc.Name, dbErr)
-		}
-	}()
 
 	if err := m.Up(); err != nil {
 		if errors.Is(err, gmigrate.ErrNoChange) {

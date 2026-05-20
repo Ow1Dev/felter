@@ -15,7 +15,7 @@ func NewServer(s store.Store) http.Handler {
 	mux := http.NewServeMux()
 	addRoutes(mux, s)
 	var handler http.Handler = mux
-	handler = recoverer(handler)
+	handler = httputil.Recoverer(handler)
 	return handler
 }
 
@@ -66,11 +66,11 @@ func handleListUsers(s store.Store) http.Handler {
 }
 
 type userResponse struct {
-	ID        int64   `json:"id"`
-	Email     string  `json:"email"`
-	Username  string  `json:"username"`
+	ID          int64   `json:"id"`
+	Email       string  `json:"email"`
+	Username    string  `json:"username"`
 	DisplayName *string `json:"display_name,omitempty"`
-	CreatedAt string  `json:"created_at"`
+	CreatedAt   string  `json:"created_at"`
 }
 
 func handleGetUser(s store.Store) http.HandlerFunc {
@@ -122,16 +122,4 @@ func handleHealthz() http.HandlerFunc {
 		w.WriteHeader(http.StatusOK)
 		_ = httputil.WriteJSON(w, http.StatusOK, map[string]string{"status": "ok"})
 	}
-}
-
-// recoverer converts panics to JSON 500 responses.
-func recoverer(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		defer func() {
-			if rec := recover(); rec != nil {
-				httputil.WriteError(w, http.StatusInternalServerError, "internal server error")
-			}
-		}()
-		next.ServeHTTP(w, r)
-	})
 }
