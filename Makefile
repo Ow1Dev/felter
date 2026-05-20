@@ -9,7 +9,7 @@ endif
 API_ADDR ?= :8080
 WEB_DIR := web
 
-.PHONY: dev dev-app down-app start-fieldservice start-userservice start-proxy start-web fieldservice userservice proxy migrate web fmt tidy vet lint test fmt-check up down
+.PHONY: dev dev-app down-app start-fieldservice start-userservice start-proxy start-web start-projectservice fieldservice userservice proxy projectservice migrate web generate-api fmt tidy vet lint test fmt-check up down
 
 init:
 	@cd $(WEB_DIR) && bun install
@@ -28,6 +28,13 @@ userservice:
 
 proxy:
 	@go build -buildvcs=false -o build/proxy ./cmd/proxy && ./build/proxy
+
+projectservice:
+	@go build -buildvcs=false -o build/projectservice ./cmd/projectservice && ./build/projectservice
+
+generate-api:
+	@oapi-codegen --config internal/projectservice/api/oapi-codegen.yaml docs/api/projectservice.yaml
+	@cd $(WEB_DIR) && bunx openapi-typescript ../docs/api/projectservice.yaml -o src/app/api/projectservice.ts
 
 migrate:
 	@go build -buildvcs=false -o build/migrate ./cmd/migrate && ./build/migrate
@@ -57,6 +64,9 @@ start-proxy:
 
 start-web:
 	@process-compose up -f process-compose.yml -d web
+
+start-projectservice:
+	@process-compose up -f process-compose.yml -d projectservice
 
 fmt:
 	@gofumpt -w .

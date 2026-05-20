@@ -1,4 +1,4 @@
-// Package main runs the proxy auth server with Keycloak OIDC and JWT issuance.
+// Package main runs the authentication proxy server.
 package main
 
 import (
@@ -42,6 +42,7 @@ func run(ctx context.Context, cfg config.Config) error {
 
 	mux.Handle("/api/field/", srv.HandleProxy(cfg.FieldURL, "/api/field"))
 	mux.Handle("/api/users/", srv.HandleProxy(cfg.UserserviceURL, "/api/users"))
+	mux.Handle("/api/projects/", srv.HandleProxy(cfg.ProjectserviceURL, "/api/projects"))
 
 	mux.HandleFunc("/healthz", func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusOK)

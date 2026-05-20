@@ -11,7 +11,9 @@ Go **fieldservice** HTTP API, Go **userservice** (gRPC + HTTP), **proxy** auth s
 make fieldservice   # :8080
 make userservice    # gRPC :9091 + HTTP :9090
 make proxy          # :9092
+make projectservice # :8081
 make migrate        # apply migrations
+make generate-api   # regenerate OpenAPI types for Go + TypeScript
 
 # Web
 make web            # bun run start (NOT npm)
@@ -27,10 +29,11 @@ make test           # go test ./... -race -count=1
 ## Environment Variables
 
 All proxy config vars are **required** (no defaults):
-- `PROXY_HTTP_ADDRESS`, `PROXY_JWT_SECRET`, `PROXY_KEYCLOAK_URL`, `PROXY_KEYCLOAK_REALM`, `PROXY_KEYCLOAK_CLIENT_ID`, `PROXY_KEYCLOAK_CLIENT_SECRET`, `PROXY_KEYCLOAK_REDIRECT_URI`, `PROXY_USERSERVICE_GRPC_ADDR`, `PROXY_FIELD_URL`, `PROXY_USERSERVICE_URL`
+- `PROXY_HTTP_ADDRESS`, `PROXY_JWT_SECRET`, `PROXY_KEYCLOAK_URL`, `PROXY_KEYCLOAK_REALM`, `PROXY_KEYCLOAK_CLIENT_ID`, `PROXY_KEYCLOAK_CLIENT_SECRET`, `PROXY_KEYCLOAK_REDIRECT_URI`, `PROXY_USERSERVICE_GRPC_ADDR`, `PROXY_FIELD_URL`, `PROXY_USERSERVICE_URL`, `PROXY_PROJECTSERVICE_URL`
 
 fieldservice: `ADDRESS` > `PORT` > `:8080`. `CORS_ALLOWED_ORIGINS` empty = allow all.
 userservice/migrate: `DATABASE_DSN` required. `GRPC_ADDRESS` default `:9091`, `HTTP_ADDRESS` default `:9090`.
+projectservice: `ADDRESS` > `PORT` > `:8081`. `DATABASE_DSN` required.
 
 `.env` at repo root is auto-loaded by Makefile.
 
@@ -54,6 +57,7 @@ userservice/migrate: `DATABASE_DSN` required. `GRPC_ADDRESS` default `:9091`, `H
 | `cmd/proxy/` | Auth proxy. Keycloak OIDC, issues JWTs. Endpoints: `/api/auth/login`, `/callback`, `/logout`, `/me` |
 | `cmd/fieldservice/` | Stateless HTTP API. `GET /api/hello` |
 | `cmd/userservice/` | gRPC + HTTP. Postgres-backed. Proto in `proto/userservice/` |
+| `cmd/projectservice/` | HTTP API. Postgres-backed. OpenAPI v3 spec in `docs/api/projectservice.yaml`. Generated types in `internal/projectservice/api/` and `web/src/app/api/` |
 | `cmd/migrate/` | Applies `.up.sql` migrations. Per-service tracking tables |
 | `web/src/app/` | Angular SPA. `app.ts` template is inline. Environments: `web/src/environments/` |
 
@@ -66,6 +70,7 @@ userservice/migrate: `DATABASE_DSN` required. `GRPC_ADDRESS` default `:9091`, `H
 - **Go linting**: `revive` `exported` rule requires doc comments on all exported symbols
 - **`web/Dockerfile` is artifact-only**: final stage is `FROM scratch` with only `/dist`
 - **Generated `*.pb.go`**: excluded from lint
+- **Generated `*.gen.go`**: excluded from lint (OpenAPI types)
 
 ## Migrations
 
