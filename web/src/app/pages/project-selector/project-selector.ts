@@ -135,7 +135,7 @@ export class ProjectSelectorComponent {
     this.projectService.createProject(req).subscribe({
       next: project => {
         this.projectService.loadProjects();
-        void this.router.navigate(['/projects', project.slug]);
+        void this.router.navigate(['/', project.slug]);
       },
       error: err => {
         console.error('Failed to create project:', err);

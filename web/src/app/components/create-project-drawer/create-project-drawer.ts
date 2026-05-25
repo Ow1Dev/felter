@@ -47,45 +47,45 @@ import { TextInputComponent } from '../ui/text-input/text-input';
         </button>
       </div>
 
-      <!-- Form -->
-      <div class="flex-1 overflow-auto p-6 flex flex-col gap-6">
-        <app-form-field label="Name" [for]="'project-name'" [required]="true">
-          <app-text-input
-            id="project-name"
-            placeholder="Enter project name..."
-            [(value)]="name"
-            [autocomplete]="'off'"
-          />
-        </app-form-field>
+      <form (submit)="onFormSubmit($event)" class="flex flex-col flex-1">
+        <div class="flex-1 overflow-auto p-6 flex flex-col gap-6">
+          <app-form-field label="Name" [for]="'project-name'" [required]="true">
+            <app-text-input
+              id="project-name"
+              placeholder="Enter project name..."
+              [(value)]="name"
+              [autocomplete]="'off'"
+            />
+          </app-form-field>
 
-        <app-form-field label="Description" [for]="'project-desc'">
-          <app-text-input
-            id="project-desc"
-            placeholder="Enter project description..."
-            [(value)]="description"
-            [autocomplete]="'off'"
-          />
-        </app-form-field>
-      </div>
+          <app-form-field label="Description" [for]="'project-desc'">
+            <app-text-input
+              id="project-desc"
+              placeholder="Enter project description..."
+              [(value)]="description"
+              [autocomplete]="'off'"
+            />
+          </app-form-field>
+        </div>
 
-      <!-- Footer -->
-      <div class="border-t border-sidebar-border px-6 py-4 flex justify-end gap-3">
-        <button
-          type="button"
-          class="rounded-md border border-border px-4 py-2 text-sm font-medium text-foreground hover:bg-accent"
-          (click)="close()"
-        >
-          Cancel
-        </button>
-        <button
-          type="button"
-          class="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
-          [disabled]="!name().trim()"
-          (click)="submit()"
-        >
-          Create Project
-        </button>
-      </div>
+        <div class="border-t border-sidebar-border px-6 py-4 flex justify-end gap-3">
+          <button
+            type="button"
+            class="rounded-md border border-border px-4 py-2 text-sm font-medium text-foreground hover:bg-accent"
+            (click)="close()"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            class="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+            [disabled]="!name().trim()"
+            (click)="submit()"
+          >
+            Create Project
+          </button>
+        </div>
+      </form>
     </div>
   `,
 })
@@ -106,6 +106,11 @@ export class CreateProjectDrawerComponent {
   close(): void {
     this.isOpen.set(false);
     this.closeDrawer.emit();
+  }
+
+  protected onFormSubmit(event: SubmitEvent): void {
+    event.preventDefault();
+    this.submit();
   }
 
   submit(): void {

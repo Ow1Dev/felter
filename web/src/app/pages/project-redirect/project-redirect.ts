@@ -1,15 +1,24 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { ProjectService } from '../../services/project.service';
 import { ViewService } from '../../services/view.service';
 
-/** Redirects `/:projectSlug` to that project's default view, validating the slug. */
+/** Redirects `/:projectSlug` to that project's default view, or shows an empty state. */
 @Component({
   standalone: true,
   template: `
-    <section class="flex flex-1 items-center justify-center p-8 text-muted-foreground">
-      <p class="text-sm">Loading project…</p>
-    </section>
+    @if (isLoading()) {
+      <section class="flex flex-1 items-center justify-center p-8 text-muted-foreground">
+        <p class="text-sm">Loading project…</p>
+      </section>
+    } @else {
+      <section class="flex flex-1 flex-col items-center justify-center gap-4 text-center p-8">
+        <h2 class="text-lg font-semibold text-foreground">No views yet</h2>
+        <p class="max-w-md text-sm text-muted-foreground">
+          This project doesn't have any views. Views will appear here once they are created.
+        </p>
+      </section>
+    }
   `,
 })
 export class ProjectRedirectComponent implements OnInit {
@@ -17,6 +26,8 @@ export class ProjectRedirectComponent implements OnInit {
   private readonly router = inject(Router);
   private readonly projectService = inject(ProjectService);
   private readonly viewService = inject(ViewService);
+
+  protected readonly isLoading = signal(true);
 
   ngOnInit(): void {
     const slug = this.route.snapshot.paramMap.get('projectSlug');
@@ -32,11 +43,12 @@ export class ProjectRedirectComponent implements OnInit {
     }
 
     const defaultView = this.viewService.getDefaultView();
-    if (!defaultView) {
-      void this.router.navigate(['/no-project']);
+    if (defaultView) {
+      void this.router.navigate(['/', project.slug, 'views', defaultView.slug]);
       return;
     }
 
-    void this.router.navigate(['/', project.slug, 'views', defaultView.slug]);
+    // No views — stay inside the project layout and show the empty state
+    this.isLoading.set(false);
   }
 }
