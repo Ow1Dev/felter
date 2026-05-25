@@ -30,7 +30,7 @@ import { TextInputComponent } from '../ui/text-input/text-input';
 
     <!-- Drawer panel -->
     <div
-      class="drawer-panel fixed top-0 right-0 h-full w-full max-w-md border-l border-sidebar-border bg-sidebar z-50 flex flex-col"
+      class="drawer-panel fixed top-0 right-0 h-full w-full max-w-md border-l border-sidebar-border z-50 flex flex-col"
       [class.translate-x-full]="!isOpen()"
       [class.translate-x-0]="isOpen()"
       style="background-color: var(--card);"
