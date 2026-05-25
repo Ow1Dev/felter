@@ -53,11 +53,11 @@ export class ProjectService {
   constructor(private http: HttpClient) {}
 
   listProjects(): Observable<Project[]> {
-    return this.http.get<Project[]>(`${environment.projectsUrl}/projects`);
+    return this.http.get<Project[]>(environment.projectsUrl);
   }
 
   createProject(request: CreateProjectRequest): Observable<Project> {
-    return this.http.post<Project>(`${environment.projectsUrl}/projects`, request);
+    return this.http.post<Project>(environment.projectsUrl, request);
   }
 
   loadProjects(): void {

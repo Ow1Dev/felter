@@ -95,7 +95,7 @@ func (s *PostgresStore) ListProjects(ctx context.Context) ([]api.Project, error)
 	}
 	defer func() { _ = rows.Close() }()
 
-	var out []api.Project
+	out := make([]api.Project, 0)
 	for rows.Next() {
 		var p api.Project
 		var desc sql.NullString

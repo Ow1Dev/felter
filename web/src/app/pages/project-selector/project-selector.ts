@@ -81,17 +81,10 @@ import { ViewService } from '../../services/view.service';
             <p class="text-sm text-muted-foreground">No projects found matching "{{ searchQuery() }}"</p>
           </div>
         } @else {
-          <div class="flex flex-col gap-4 text-center">
+          <div class="flex flex-1 flex-col items-center justify-center gap-4 text-center">
             <p class="max-w-md text-sm text-muted-foreground">
               We couldn't find any projects. Create one using the New Project button to get started.
             </p>
-            <button
-              type="button"
-              class="rounded-md border border-border px-4 py-2 text-sm font-medium text-foreground/80 hover:text-foreground"
-              (click)="reload()"
-            >
-              Refresh
-            </button>
           </div>
         }
       </div>
@@ -128,10 +121,6 @@ export class ProjectSelectorComponent {
     } else {
       void this.router.navigate(['/', slug]);
     }
-  }
-
-  protected reload(): void {
-    window.location.reload();
   }
 
   protected openDrawer(): void {

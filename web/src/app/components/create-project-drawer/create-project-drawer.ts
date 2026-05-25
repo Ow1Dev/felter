@@ -33,7 +33,7 @@ import { TextInputComponent } from '../ui/text-input/text-input';
       class="drawer-panel fixed top-0 right-0 h-full w-full max-w-md border-l border-sidebar-border z-50 flex flex-col"
       [class.translate-x-full]="!isOpen()"
       [class.translate-x-0]="isOpen()"
-      style="background-color: var(--background);"
+      style="background-color: var(--card);"
     >
       <!-- Header -->
       <div class="flex items-center justify-between border-b border-sidebar-border px-6 py-4">

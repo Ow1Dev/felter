@@ -5,7 +5,7 @@ info:
 servers:
   - url: /
 paths:
-  /projects:
+  /:
     post:
       operationId: createProject
       summary: Create a new project
@@ -40,7 +40,7 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/Project'
-  /projects/{slug}:
+  /{slug}:
     get:
       operationId: getProject
       summary: Get a project by slug

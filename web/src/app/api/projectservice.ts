@@ -4,7 +4,7 @@
  */
 
 export interface paths {
-    "/projects": {
+    "/": {
         parameters: {
             query?: never;
             header?: never;
@@ -22,7 +22,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/projects/{slug}": {
+    "/{slug}": {
         parameters: {
             query?: never;
             header?: never;
