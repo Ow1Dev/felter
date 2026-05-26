@@ -52,6 +52,7 @@ func run(ctx context.Context, cfg config.Config) error {
 	var handler http.Handler = mux
 	handler = middleware.CorrelationID(handler)
 	handler = middleware.RequestLogger(logger, handler)
+	handler = middleware.CORS(handler)
 
 	server := &http.Server{
 		Addr:    cfg.HTTPAddress,
