@@ -102,7 +102,7 @@ func Up(pool *sql.DB, services []Service, stdout, stderr io.Writer) []Result {
 	return results
 }
 
-func migrateServiceUp(pool *sql.DB, svc Service, stderr io.Writer) (int, error) {
+func migrateServiceUp(pool *sql.DB, svc Service, _ io.Writer) (int, error) {
 	driver, err := postgres.WithInstance(pool, &postgres.Config{
 		MigrationsTable: svc.Name + "_migrations",
 	})
