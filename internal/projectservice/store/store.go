@@ -5,7 +5,6 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"regexp"
 	"strings"
 
 	"github.com/lib/pq"
@@ -36,18 +35,34 @@ func NewPostgresStore(db *sql.DB) *PostgresStore {
 	return &PostgresStore{db: db}
 }
 
-var (
-	slugInvalidChars = regexp.MustCompile(`[^a-z0-9-]+`)
-	slugHyphenRepeat = regexp.MustCompile(`-+`)
-)
-
 func slugify(name string) string {
 	s := strings.ToLower(strings.TrimSpace(name))
-	s = strings.ReplaceAll(s, "_", "-")
-	s = slugInvalidChars.ReplaceAllString(s, "-")
-	s = slugHyphenRepeat.ReplaceAllString(s, "-")
-	s = strings.Trim(s, "-")
-	return s
+	var b strings.Builder
+	b.Grow(len(s))
+
+	var prevHyphen bool
+	for _, r := range s {
+		if r == '_' {
+			r = '-'
+		}
+		switch {
+		case r >= 'a' && r <= 'z', r >= '0' && r <= '9':
+			b.WriteRune(r)
+			prevHyphen = false
+		case r == '-':
+			if !prevHyphen {
+				b.WriteRune(r)
+				prevHyphen = true
+			}
+		default:
+			if !prevHyphen {
+				b.WriteRune('-')
+				prevHyphen = true
+			}
+		}
+	}
+
+	return strings.Trim(b.String(), "-")
 }
 
 func (s *PostgresStore) makeUniqueSlug(ctx context.Context, base string) (string, error) {

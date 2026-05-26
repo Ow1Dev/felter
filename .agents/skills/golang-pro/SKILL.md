@@ -109,6 +109,7 @@ Key properties demonstrated: bounded goroutine lifetime via `ctx`, error propaga
 - Use reflection without performance justification
 - Mix sync and async patterns carelessly
 - Hardcode configuration (use functional options or env vars)
+- Use regex — prefer `strings`/`unicode` package functions or explicit loops
 
 ## Output Templates
 

@@ -67,7 +67,7 @@ projectservice: `ADDRESS` > `PORT` > `:8081`. `DATABASE_DSN` required.
 - **`make web` uses bun**: not npm
 - **Angular build default = production**: use `--configuration development` for dev
 - **`recoverer` inlines JSON 500 as raw string**: avoids import cycle with `httputil`
-- **Go linting**: `revive` `exported` rule requires doc comments on all exported symbols
+- **Linting**: Always run `make lint` (do not call `golangci-lint` directly)
 - **`web/Dockerfile` is artifact-only**: final stage is `FROM scratch` with only `/dist`
 - **Generated `*.pb.go`**: excluded from lint
 - **Generated `*.gen.go`**: excluded from lint (OpenAPI types)
