@@ -8,11 +8,16 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/lib/pq"
+
 	"github.com/Ow1Dev/felter/internal/projectservice/api"
 )
 
 // ErrProjectNotFound is returned when a project is not found.
 var ErrProjectNotFound = fmt.Errorf("project not found")
+
+// ErrInvalidProjectName is returned when a project name cannot produce a valid slug.
+var ErrInvalidProjectName = fmt.Errorf("invalid project name")
 
 // Store defines persistence operations for projects.
 type Store interface {
@@ -63,7 +68,12 @@ func (s *PostgresStore) makeUniqueSlug(ctx context.Context, base string) (string
 
 // CreateProject inserts a new project and returns it.
 func (s *PostgresStore) CreateProject(ctx context.Context, name, description string) (*api.Project, error) {
-	slug, err := s.makeUniqueSlug(ctx, slugify(name))
+	baseSlug := slugify(name)
+	if baseSlug == "" {
+		return nil, ErrInvalidProjectName
+	}
+
+	slug, err := s.makeUniqueSlug(ctx, baseSlug)
 	if err != nil {
 		return nil, err
 	}
@@ -78,12 +88,43 @@ func (s *PostgresStore) CreateProject(ctx context.Context, name, description str
 	if err := s.db.QueryRowContext(ctx, q, name, description, slug).Scan(
 		&p.Id, &p.Name, &desc, &p.Slug, &p.CreatedAt, &p.UpdatedAt,
 	); err != nil {
+		if pgErr, ok := err.(*pq.Error); ok && pgErr.Code == "23505" {
+			// Unique violation on slug — retry with a suffix.
+			return s.createProjectWithSuffix(ctx, name, description, baseSlug, 1)
+		}
 		return nil, fmt.Errorf("create project: %w", err)
 	}
 	if desc.Valid {
 		p.Description = &desc.String
 	}
 	return &p, nil
+}
+
+func (s *PostgresStore) createProjectWithSuffix(ctx context.Context, name, description, base string, start int) (*api.Project, error) {
+	for i := start; i <= 1000; i++ {
+		slug := fmt.Sprintf("%s-%d", base, i)
+		const q = `
+			INSERT INTO projects (name, description, slug)
+			VALUES ($1, $2, $3)
+			RETURNING id, name, description, slug, created_at, updated_at
+		`
+		var p api.Project
+		var desc sql.NullString
+		err := s.db.QueryRowContext(ctx, q, name, description, slug).Scan(
+			&p.Id, &p.Name, &desc, &p.Slug, &p.CreatedAt, &p.UpdatedAt,
+		)
+		if err == nil {
+			if desc.Valid {
+				p.Description = &desc.String
+			}
+			return &p, nil
+		}
+		if pgErr, ok := err.(*pq.Error); ok && pgErr.Code == "23505" {
+			continue
+		}
+		return nil, fmt.Errorf("create project: %w", err)
+	}
+	return nil, fmt.Errorf("could not generate unique slug for %q", base)
 }
 
 // ListProjects returns all projects ordered by creation time.

@@ -2,6 +2,7 @@
 package handlers
 
 import (
+	"log/slog"
 	"net/http"
 	"strings"
 
@@ -11,7 +12,7 @@ import (
 )
 
 // HandleCreateProject returns a handler for POST /.
-func HandleCreateProject(s store.Store) http.Handler {
+func HandleCreateProject(logger *slog.Logger, s store.Store) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		req, err := httputil.Decode[api.CreateProjectRequest](r)
 		if err != nil {
@@ -31,7 +32,12 @@ func HandleCreateProject(s store.Store) http.Handler {
 
 		project, err := s.CreateProject(r.Context(), req.Name, desc)
 		if err != nil {
-			httputil.WriteError(w, http.StatusInternalServerError, err.Error())
+			if err == store.ErrInvalidProjectName {
+				httputil.WriteError(w, http.StatusBadRequest, "invalid project name")
+				return
+			}
+			logger.Error("create project", slog.String("err", err.Error()))
+			httputil.WriteError(w, http.StatusInternalServerError, "internal server error")
 			return
 		}
 
@@ -40,11 +46,12 @@ func HandleCreateProject(s store.Store) http.Handler {
 }
 
 // HandleListProjects returns a handler for GET /.
-func HandleListProjects(s store.Store) http.Handler {
+func HandleListProjects(logger *slog.Logger, s store.Store) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		projects, err := s.ListProjects(r.Context())
 		if err != nil {
-			httputil.WriteError(w, http.StatusInternalServerError, err.Error())
+			logger.Error("list projects", slog.String("err", err.Error()))
+			httputil.WriteError(w, http.StatusInternalServerError, "internal server error")
 			return
 		}
 		_ = httputil.WriteJSON(w, http.StatusOK, projects)
@@ -52,7 +59,7 @@ func HandleListProjects(s store.Store) http.Handler {
 }
 
 // HandleGetProject returns a handler for GET /{slug}.
-func HandleGetProject(s store.Store) http.Handler {
+func HandleGetProject(logger *slog.Logger, s store.Store) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		slug := r.PathValue("slug")
 		if slug == "" {
@@ -66,7 +73,8 @@ func HandleGetProject(s store.Store) http.Handler {
 				httputil.WriteError(w, http.StatusNotFound, "project not found")
 				return
 			}
-			httputil.WriteError(w, http.StatusInternalServerError, err.Error())
+			logger.Error("get project", slog.String("slug", slug), slog.String("err", err.Error()))
+			httputil.WriteError(w, http.StatusInternalServerError, "internal server error")
 			return
 		}
 		_ = httputil.WriteJSON(w, http.StatusOK, project)

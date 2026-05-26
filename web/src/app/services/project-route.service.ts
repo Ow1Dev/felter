@@ -42,7 +42,11 @@ export class ProjectRouteService {
     this.slug.set(slug);
 
     if (slug) {
-      this.projectService.setActiveBySlug(slug);
+      if (this.projectService.projects().length === 0) {
+        this.projectService.loadProjectsAndSetActive(slug);
+      } else {
+        this.projectService.setActiveBySlug(slug);
+      }
     }
   }
 

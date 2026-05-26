@@ -134,6 +134,8 @@ export class ProjectSelectorComponent {
     };
     this.projectService.createProject(req).subscribe({
       next: project => {
+        this.projectService.projects.update(projects => [...projects, project]);
+        this.projectService.setActive(project);
         this.projectService.loadProjects();
         void this.router.navigate(['/', project.slug]);
       },

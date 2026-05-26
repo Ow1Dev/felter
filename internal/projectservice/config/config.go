@@ -20,10 +20,6 @@ type Config struct {
 func Load() Config {
 	addr := getAddr()
 	dsn := os.Getenv("DATABASE_DSN")
-	if dsn == "" {
-		// Keep consistent with userservice fallback for local development.
-		dsn = "postgres://felter:felter@localhost:5432/felter?sslmode=disable"
-	}
 	return Config{
 		Address:      addr,
 		DatabaseDSN:  dsn,

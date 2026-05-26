@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnInit, effect, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { ProjectService } from '../../services/project.service';
 import { ViewService } from '../../services/view.service';
@@ -28,6 +28,31 @@ export class ProjectRedirectComponent implements OnInit {
   private readonly viewService = inject(ViewService);
 
   protected readonly isLoading = signal(true);
+  private readonly handled = signal(false);
+
+  constructor() {
+    effect(() => {
+      if (this.handled()) return;
+      const slug = this.route.snapshot.paramMap.get('projectSlug');
+      if (!slug || this.projectService.projects().length === 0) return;
+
+      this.handled.set(true);
+      const project = this.projectService.getBySlug(slug);
+      if (!project) {
+        void this.router.navigate(['/no-project']);
+        return;
+      }
+
+      const defaultView = this.viewService.getDefaultView();
+      if (defaultView) {
+        void this.router.navigate(['/', project.slug, 'views', defaultView.slug]);
+        return;
+      }
+
+      // No views — stay inside the project layout and show the empty state
+      this.isLoading.set(false);
+    });
+  }
 
   ngOnInit(): void {
     const slug = this.route.snapshot.paramMap.get('projectSlug');
@@ -36,19 +61,8 @@ export class ProjectRedirectComponent implements OnInit {
       return;
     }
 
-    const project = this.projectService.getBySlug(slug);
-    if (!project) {
-      void this.router.navigate(['/no-project']);
-      return;
+    if (this.projectService.projects().length === 0) {
+      this.projectService.loadProjectsAndSetActive(slug);
     }
-
-    const defaultView = this.viewService.getDefaultView();
-    if (defaultView) {
-      void this.router.navigate(['/', project.slug, 'views', defaultView.slug]);
-      return;
-    }
-
-    // No views — stay inside the project layout and show the empty state
-    this.isLoading.set(false);
   }
 }

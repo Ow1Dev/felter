@@ -14,7 +14,7 @@ import (
 func New(_ config.Config, s store.Store, logger *slog.Logger) http.Handler {
 	mux := http.NewServeMux()
 
-	addRoutes(mux, s)
+	addRoutes(mux, s, logger)
 
 	// Wrap with middleware: recover -> logger
 	var h http.Handler = mux

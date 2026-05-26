@@ -118,19 +118,6 @@ export class ProjectService {
     return this.projects()[0] ?? null;
   }
 
-  getStoredActiveProjectSlug(): string | null {
-    if (typeof window === 'undefined' || typeof window.localStorage === 'undefined') {
-      return null;
-    }
-    try {
-      const slug = window.localStorage.getItem(ACTIVE_PROJECT_STORAGE_KEY);
-      if (!slug) return null;
-      return slug;
-    } catch {
-      return null;
-    }
-  }
-
   private persistActiveProject(slug: string): void {
     if (typeof window === 'undefined' || typeof window.localStorage === 'undefined') {
       return;
