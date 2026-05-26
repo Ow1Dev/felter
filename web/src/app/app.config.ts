@@ -15,6 +15,7 @@ import {
   Moon,
   PanelLeftClose,
   PanelLeftOpen,
+  Plus,
   Settings,
   Sun,
   Search,
@@ -22,6 +23,7 @@ import {
   Users,
   Wrench,
   LogOut,
+  X,
 } from 'lucide-angular';
 
 import { routes } from './app.routes';
@@ -40,6 +42,7 @@ const icons = {
   Moon,
   PanelLeftClose,
   PanelLeftOpen,
+  Plus,
   Settings,
   LogOut,
   Search,
@@ -47,6 +50,7 @@ const icons = {
   UserRound,
   Users,
   Wrench,
+  X,
 };
 
 export const appConfig: ApplicationConfig = {

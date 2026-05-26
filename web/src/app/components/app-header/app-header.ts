@@ -39,7 +39,7 @@ import { environment } from '../../../environments/environment';
 template: `
     <!-- Left side: brand name (clickable) -->
     <button
-      (click)="goToWorkspaceChooser()"
+      (click)="goToProjectChooser()"
       class="text-sm font-semibold text-sidebar-foreground transition-colors hover:text-sidebar-accent-foreground cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-ring rounded px-2 py-1"
     >
       felter
@@ -133,7 +133,7 @@ export class AppHeaderComponent {
     void this.router.navigate(['/settings']);
   }
 
-  protected goToWorkspaceChooser(): void {
+  protected goToProjectChooser(): void {
     void this.router.navigate(['/']);
   }
 

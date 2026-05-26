@@ -32,6 +32,7 @@
             nixd
             golangci-lint
             gofumpt
+            oapi-codegen
             protobuf
             grpcurl
             process-compose

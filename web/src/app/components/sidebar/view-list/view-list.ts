@@ -3,7 +3,7 @@ import { NgpTooltipTrigger } from 'ng-primitives/tooltip';
 import { LucideAngularModule } from 'lucide-angular';
 import { RouterLink, RouterLinkActive } from '@angular/router';
 import { ViewService } from '../../../services/view.service';
-import { WorkspaceRouteService } from '../../../services/workspace-route.service';
+import { ProjectRouteService } from '../../../services/project-route.service';
 
 /** Renders the flat list of data views. Shows icon+label when expanded, icon+tooltip when collapsed. */
 @Component({
@@ -41,7 +41,7 @@ import { WorkspaceRouteService } from '../../../services/workspace-route.service
     }
   `],
   template: `
-    @if (workspaceSlug(); as slug) {
+    @if (projectSlug(); as slug) {
       <nav class="flex flex-col gap-0.5 px-2">
         @for (view of viewService.views(); track view.id) {
           @if (collapsed()) {
@@ -72,7 +72,7 @@ import { WorkspaceRouteService } from '../../../services/workspace-route.service
       </nav>
     } @else {
       <div class="px-4 py-6 text-center text-xs text-muted-foreground">
-        Select a workspace to view its boards.
+        Select a project to view its boards.
       </div>
     }
   `,
@@ -80,5 +80,5 @@ import { WorkspaceRouteService } from '../../../services/workspace-route.service
 export class ViewListComponent {
   readonly collapsed = input(false);
   protected readonly viewService = inject(ViewService);
-  protected readonly workspaceSlug = inject(WorkspaceRouteService).workspaceSlug;
+  protected readonly projectSlug = inject(ProjectRouteService).projectSlug;
 }

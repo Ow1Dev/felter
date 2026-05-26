@@ -1,3 +1,5 @@
+// Package httpserver provides the HTTP handlers and OIDC provider integration
+// for the authentication proxy.
 package httpserver
 
 import (
@@ -12,6 +14,7 @@ import (
 	"time"
 )
 
+// KeycloakProvider implements the Provider interface for Keycloak OIDC.
 type KeycloakProvider struct {
 	URL           string
 	ClientID      string
@@ -22,6 +25,7 @@ type KeycloakProvider struct {
 	UserInfoURL   string
 }
 
+// NewKeycloakProvider creates a new KeycloakProvider with the given configuration.
 func NewKeycloakProvider(url, realm, clientID, clientSecret, redirectURI string) *KeycloakProvider {
 	return &KeycloakProvider{
 		URL:          url,
@@ -32,10 +36,12 @@ func NewKeycloakProvider(url, realm, clientID, clientSecret, redirectURI string)
 	}
 }
 
+// Type returns the provider type identifier.
 func (p *KeycloakProvider) Type() string {
 	return "keycloak"
 }
 
+// BuildAuthURL constructs the Keycloak authorization URL with the given state and redirect URI.
 func (p *KeycloakProvider) BuildAuthURL(state, redirectURI string) string {
 	return fmt.Sprintf("%s/realms/%s/protocol/openid-connect/auth?client_id=%s&redirect_uri=%s&response_type=code&scope=openid&state=%s",
 		p.URL, p.Realm, p.ClientID, url.QueryEscape(redirectURI), state)
@@ -43,11 +49,12 @@ func (p *KeycloakProvider) BuildAuthURL(state, redirectURI string) string {
 
 type oidcTokenResponse struct {
 	AccessToken string `json:"access_token"`
-	IdToken     string `json:"id_token"`
+	IDToken     string `json:"id_token"`
 	ExpiresIn   int    `json:"expires_in"`
 }
 
-func (p *KeycloakProvider) ExchangeCode(ctx context.Context, code, redirectURI string) (string, error) {
+// ExchangeCode exchanges an authorization code for an access token.
+func (p *KeycloakProvider) ExchangeCode(_ context.Context, code, redirectURI string) (string, error) {
 	data := url.Values{}
 	data.Set("grant_type", "authorization_code")
 	data.Set("code", code)
@@ -61,7 +68,7 @@ func (p *KeycloakProvider) ExchangeCode(ctx context.Context, code, redirectURI s
 	if err != nil {
 		return "", fmt.Errorf("exchange code: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
@@ -83,6 +90,7 @@ type oidcUserInfo struct {
 	Email string `json:"email"`
 }
 
+// GetUserInfo fetches user information from Keycloak using the provided access token.
 func (p *KeycloakProvider) GetUserInfo(ctx context.Context, accessToken string) (*ProviderUserInfo, error) {
 	userInfoURL := fmt.Sprintf("%s/realms/%s/protocol/openid-connect/userinfo", p.URL, p.Realm)
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, userInfoURL, nil)
@@ -96,7 +104,7 @@ func (p *KeycloakProvider) GetUserInfo(ctx context.Context, accessToken string) 
 	if err != nil {
 		return nil, fmt.Errorf("do request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {

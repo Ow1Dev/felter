@@ -2,9 +2,9 @@ import { Component } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import { SidebarComponent } from '../../components/sidebar/sidebar';
 
-/** Layout for all workspace-related pages: sidebar + main content area. */
+/** Layout for all project-related pages: sidebar + main content area. */
 @Component({
-  selector: 'app-workspace-layout',
+  selector: 'app-project-layout',
   imports: [SidebarComponent, RouterOutlet],
   template: `
     <div class="flex w-full h-full overflow-hidden">
@@ -15,4 +15,4 @@ import { SidebarComponent } from '../../components/sidebar/sidebar';
     </div>
   `,
 })
-export class WorkspaceLayoutComponent {}
+export class ProjectLayoutComponent {}

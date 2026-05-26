@@ -86,6 +86,7 @@ func (s *PostgresStore) ListUsers(ctx context.Context) ([]*User, error) {
 	return out, nil
 }
 
+// GetUser retrieves a user by its ID.
 func (s *PostgresStore) GetUser(ctx context.Context, id int64) (*User, error) {
 	const q = `SELECT id, email, username, display_name, created_at FROM users WHERE id = $1`
 	var u User
@@ -103,6 +104,7 @@ func (s *PostgresStore) GetUser(ctx context.Context, id int64) (*User, error) {
 	return &u, nil
 }
 
+// GetUserFromProvider looks up a user by its linked provider identity.
 func (s *PostgresStore) GetUserFromProvider(ctx context.Context, provider, providerID string) (*User, error) {
 	const q = `
 		SELECT u.id, u.email, u.username, u.display_name, u.created_at
@@ -127,6 +129,7 @@ func (s *PostgresStore) GetUserFromProvider(ctx context.Context, provider, provi
 	return &u, nil
 }
 
+// CreateUserFromProvider creates a new user and links it to the given provider identity.
 func (s *PostgresStore) CreateUserFromProvider(ctx context.Context, provider, providerID, email, username string) (*User, error) {
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {

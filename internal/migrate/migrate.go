@@ -102,7 +102,7 @@ func Up(pool *sql.DB, services []Service, stdout, stderr io.Writer) []Result {
 	return results
 }
 
-func migrateServiceUp(pool *sql.DB, svc Service, stderr io.Writer) (int, error) {
+func migrateServiceUp(pool *sql.DB, svc Service, _ io.Writer) (int, error) {
 	driver, err := postgres.WithInstance(pool, &postgres.Config{
 		MigrationsTable: svc.Name + "_migrations",
 	})
@@ -115,12 +115,6 @@ func migrateServiceUp(pool *sql.DB, svc Service, stderr io.Writer) (int, error) 
 	if err != nil {
 		return 0, fmt.Errorf("migrate instance: %w", err)
 	}
-	defer func() {
-		_, dbErr := m.Close()
-		if dbErr != nil {
-			_, _ = fmt.Fprintf(stderr, "migrate close (%s): %v\n", svc.Name, dbErr)
-		}
-	}()
 
 	if err := m.Up(); err != nil {
 		if errors.Is(err, gmigrate.ErrNoChange) {

@@ -3,11 +3,11 @@ import { Router } from '@angular/router';
 import { NgpTooltipTrigger } from 'ng-primitives/tooltip';
 import { LucideAngularModule } from 'lucide-angular';
 import { ViewListComponent } from './view-list/view-list';
-import { WorkspaceRouteService } from '../../services/workspace-route.service';
+import { ProjectRouteService } from '../../services/project-route.service';
 
 const COLLAPSED_KEY = 'felter-sidebar-collapsed';
 
-/** Sidebar shell — manages collapsed/expanded state, displays views and workspace settings. */
+/** Sidebar shell — manages collapsed/expanded state, displays views and project settings. */
 @Component({
   selector: 'app-sidebar',
   imports: [
@@ -40,17 +40,17 @@ const COLLAPSED_KEY = 'felter-sidebar-collapsed';
     '[class.expanded]': '!collapsed()',
   },
   template: `
-    <!-- Top zone: workspace name + collapse toggle -->
+    <!-- Top zone: project name + collapse toggle -->
     <div
       class="flex items-center gap-1 border-b border-sidebar-border px-2 py-3"
       [class.justify-center]="collapsed()"
       [class.justify-between]="!collapsed()"
     >
-      <!-- Workspace name: expanded only -->
+      <!-- Project name: expanded only -->
       @if (!collapsed()) {
         <div class="flex-1 min-w-0">
           <span class="text-sm font-semibold text-sidebar-foreground truncate">
-            {{ workspaceRoute.workspace()?.name }}
+            {{ projectRoute.project()?.name }}
           </span>
         </div>
       }
@@ -85,12 +85,12 @@ const COLLAPSED_KEY = 'felter-sidebar-collapsed';
       <app-view-list [collapsed]="collapsed()" />
     </div>
 
-    <!-- Bottom zone: workspace settings -->
+    <!-- Bottom zone: project settings -->
     <div class="border-t border-sidebar-border px-2 py-3">
       <!-- Settings: expanded -->
       @if (!collapsed()) {
         <button
-          (click)="goToWorkspaceSettings()"
+          (click)="goToProjectSettings()"
           class="flex w-full items-center gap-2.5 rounded-lg px-2 py-2 text-sm transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring"
         >
           <lucide-icon name="settings" [size]="16" class="shrink-0" />
@@ -104,7 +104,7 @@ const COLLAPSED_KEY = 'felter-sidebar-collapsed';
           [ngpTooltipTrigger]="'Settings'"
           ngpTooltipTriggerPlacement="right"
           [ngpTooltipTriggerShowDelay]="300"
-          (click)="goToWorkspaceSettings()"
+          (click)="goToProjectSettings()"
           class="flex h-9 w-9 mx-auto items-center justify-center rounded-lg transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring"
         >
           <lucide-icon name="settings" [size]="16" class="text-sidebar-foreground" />
@@ -116,7 +116,7 @@ const COLLAPSED_KEY = 'felter-sidebar-collapsed';
 export class SidebarComponent implements OnInit {
   readonly collapsed = signal(false);
   private readonly router = inject(Router);
-  protected readonly workspaceRoute = inject(WorkspaceRouteService);
+  protected readonly projectRoute = inject(ProjectRouteService);
 
   ngOnInit(): void {
     const stored = localStorage.getItem(COLLAPSED_KEY);
@@ -128,8 +128,8 @@ export class SidebarComponent implements OnInit {
     localStorage.setItem(COLLAPSED_KEY, String(this.collapsed()));
   }
 
-  protected goToWorkspaceSettings(): void {
-    const slug = this.workspaceRoute.workspaceSlug();
+  protected goToProjectSettings(): void {
+    const slug = this.projectRoute.projectSlug();
     if (!slug) return;
     void this.router.navigate(['/', slug, 'settings']);
   }

@@ -1,4 +1,4 @@
-// Package main runs the proxy auth server with Keycloak OIDC and JWT issuance.
+// Package main runs the authentication proxy server.
 package main
 
 import (
@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -40,8 +41,9 @@ func run(ctx context.Context, cfg config.Config) error {
 	mux.HandleFunc("/api/auth/logout", srv.HandleLogout())
 	mux.HandleFunc("/api/auth/me", srv.HandleMe())
 
-	mux.Handle("/api/field/", srv.HandleProxy(cfg.FieldURL, "/api/field"))
-	mux.Handle("/api/users/", srv.HandleProxy(cfg.UserserviceURL, "/api/users"))
+	registerProxy(srv, mux, cfg.FieldURL, "/api/field")
+	registerProxy(srv, mux, cfg.UserserviceURL, "/api/users")
+	registerProxy(srv, mux, cfg.ProjectserviceURL, "/api/projects")
 
 	mux.HandleFunc("/healthz", func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusOK)
@@ -50,6 +52,7 @@ func run(ctx context.Context, cfg config.Config) error {
 	var handler http.Handler = mux
 	handler = middleware.CorrelationID(handler)
 	handler = middleware.RequestLogger(logger, handler)
+	handler = middleware.CORS(handler)
 
 	server := &http.Server{
 		Addr:    cfg.HTTPAddress,
@@ -72,4 +75,14 @@ func run(ctx context.Context, cfg config.Config) error {
 		logger.Error("graceful shutdown failed", slog.String("err", err.Error()))
 	}
 	return nil
+}
+
+// registerProxy creates a reverse-proxy handler and registers both the exact
+// path and its trailing-slash prefix so POSTs to the bare path are not redirected.
+func registerProxy(srv *httpserver.Server, mux *http.ServeMux, targetURL, pathPrefix string) {
+	handler := srv.HandleProxy(targetURL, pathPrefix)
+	mux.Handle(pathPrefix, handler)
+	if !strings.HasSuffix(pathPrefix, "/") {
+		mux.Handle(pathPrefix+"/", handler)
+	}
 }
