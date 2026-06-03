@@ -11,6 +11,10 @@ import (
 // addRoutes maps the entire API surface in one place.
 func addRoutes(mux *http.ServeMux, _ config.Config) {
 	mux.Handle("/hello", handlers.HandleHello())
+	mux.HandleFunc("/healthz", func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte("ok"))
+	})
 
 	// NotFound -> JSON
 	mux.HandleFunc("/", func(w http.ResponseWriter, _ *http.Request) {

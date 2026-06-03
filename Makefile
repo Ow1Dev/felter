@@ -6,32 +6,16 @@ ifneq (,$(wildcard ./.env))
 	export
 endif
 
-API_ADDR ?= :8080
 WEB_DIR := web
 COMPOSE_FILES := -f docker-compose.yml -f infra/dev/compose.yml
 
-.PHONY: dev down-app fieldservice userservice proxy projectservice migrate web generate-api fmt tidy vet lint test fmt-check up down
+.PHONY: dev down-app migrate generate-api fmt tidy vet lint test fmt-check up down
 
 init:
 	@cd $(WEB_DIR) && bun install
 	@docker compose up -d
 	@for i in $$(seq 1 30); do docker compose exec postgres pg_isready -U felter > /dev/null 2>&1 && break || true; sleep 1; done
 	@make migrate
-
-web:
-	@cd $(WEB_DIR) && bun start
-
-fieldservice:
-	@go build -buildvcs=false -o build/fieldservice ./cmd/fieldservice && PORT=$${API_ADDR#:} ./build/fieldservice
-
-userservice:
-	@go build -buildvcs=false -o build/userservice ./cmd/userservice && ./build/userservice
-
-proxy:
-	@go build -buildvcs=false -o build/proxy ./cmd/proxy && ./build/proxy
-
-projectservice:
-	@go build -buildvcs=false -o build/projectservice ./cmd/projectservice && ./build/projectservice
 
 generate-api:
 	@oapi-codegen --config internal/projectservice/api/oapi-codegen.yaml docs/api/projectservice.yaml
@@ -47,7 +31,7 @@ down:
 	@docker compose down -v
 
 dev:
-	@docker compose $(COMPOSE_FILES) up -d
+	@docker compose $(COMPOSE_FILES) up --build -d
 
 down-app:
 	@docker compose -f infra/dev/compose.yml down

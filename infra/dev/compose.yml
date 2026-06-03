@@ -12,7 +12,7 @@ services:
     build:
       context: .
       dockerfile: infra/dev/Dockerfile.go
-    command: ["go", "run", "./cmd/fieldservice"]
+    command: ["air", "-c", "infra/dev/.air.fieldservice.toml"]
     environment:
       ADDRESS: ":8080"
     volumes:
@@ -24,7 +24,7 @@ services:
     build:
       context: .
       dockerfile: infra/dev/Dockerfile.go
-    command: ["go", "run", "./cmd/userservice"]
+    command: ["air", "-c", "infra/dev/.air.userservice.toml"]
     environment:
       DATABASE_DSN: "postgres://felter:felter@postgres:5432/felter?sslmode=disable"
       GRPC_ADDRESS: ":9091"
@@ -42,7 +42,7 @@ services:
     build:
       context: .
       dockerfile: infra/dev/Dockerfile.go
-    command: ["go", "run", "./cmd/projectservice"]
+    command: ["air", "-c", "infra/dev/.air.projectservice.toml"]
     environment:
       DATABASE_DSN: "postgres://felter:felter@postgres:5432/felter?sslmode=disable"
       ADDRESS: ":8081"
@@ -58,7 +58,7 @@ services:
     build:
       context: .
       dockerfile: infra/dev/Dockerfile.go
-    command: ["go", "run", "./cmd/proxy"]
+    command: ["air", "-c", "infra/dev/.air.proxy.toml"]
     environment:
       PROXY_HTTP_ADDRESS: ":9092"
       PROXY_JWT_SECRET: "${PROXY_JWT_SECRET}"
@@ -91,5 +91,3 @@ services:
       - /app/node_modules
     ports:
       - "4200:4200"
-    depends_on:
-      - proxy
