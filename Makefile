@@ -28,7 +28,7 @@ up:
 	@docker compose up -d
 
 down:
-	@docker compose down -v
+	@docker compose $(COMPOSE_FILES) down -v
 
 dev:
 	@docker compose $(COMPOSE_FILES) up --build -d

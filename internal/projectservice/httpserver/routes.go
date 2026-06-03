@@ -14,7 +14,7 @@ func addRoutes(mux *http.ServeMux, s store.Store, logger *slog.Logger) {
 	mux.Handle("POST /{$}", handlers.HandleCreateProject(logger, s))
 	mux.Handle("GET /{$}", handlers.HandleListProjects(logger, s))
 	mux.Handle("GET /{slug}", handlers.HandleGetProject(logger, s))
-	mux.HandleFunc("/healthz", func(w http.ResponseWriter, _ *http.Request) {
+	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write([]byte("ok"))
 	})
