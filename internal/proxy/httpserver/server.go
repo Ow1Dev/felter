@@ -50,6 +50,7 @@ func New(cfg config.Config, logger *slog.Logger) *Server {
 
 	provider := NewKeycloakProvider(
 		cfg.KeycloakURL,
+		cfg.KeycloakPublicURL,
 		cfg.KeycloakRealm,
 		cfg.KeycloakClientID,
 		cfg.KeycloakClientSecret,
@@ -151,7 +152,7 @@ func (s *Server) HandleCallback() http.HandlerFunc {
 func (s *Server) HandleLogout() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		logoutURL := fmt.Sprintf("%s/realms/%s/protocol/openid-connect/logout?redirect_uri=%s",
-			s.cfg.KeycloakURL,
+			s.cfg.KeycloakPublicURL,
 			s.cfg.KeycloakRealm,
 			s.cfg.KeycloakRedirectURI,
 		)

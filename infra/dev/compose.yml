@@ -1,0 +1,86 @@
+# Dev application services compose file.
+# Start alongside the base docker-compose.yml (Postgres + Keycloak).
+#
+#   docker compose -f docker-compose.yml -f infra/dev/compose.yml up -d
+#
+# Or simply: make dev
+
+name: felter
+
+services:
+  proxy:
+    build:
+      context: .
+      dockerfile: infra/dev/Dockerfile
+    command: ["air", "-c", "infra/dev/.air.proxy.toml"]
+    environment:
+      PROXY_HTTP_ADDRESS: ":9092"
+      PROXY_JWT_SECRET: "${PROXY_JWT_SECRET}"
+      PROXY_KEYCLOAK_URL: "http://keycloak:8080"
+      PROXY_KEYCLOAK_PUBLIC_URL: "http://localhost:8180"
+      PROXY_KEYCLOAK_REALM: "${PROXY_KEYCLOAK_REALM}"
+      PROXY_KEYCLOAK_CLIENT_ID: "${PROXY_KEYCLOAK_CLIENT_ID}"
+      PROXY_KEYCLOAK_CLIENT_SECRET: "${PROXY_KEYCLOAK_CLIENT_SECRET}"
+      PROXY_KEYCLOAK_REDIRECT_URI: "${PROXY_KEYCLOAK_REDIRECT_URI}"
+      PROXY_USERSERVICE_GRPC_ADDR: "userservice:9091"
+      PROXY_FIELD_URL: "http://fieldservice:8080"
+      PROXY_USERSERVICE_URL: "http://userservice:9090"
+      PROXY_PROJECTSERVICE_URL: "http://projectservice:8081"
+    volumes:
+      - .:/app
+    ports:
+      - "9092:9092"
+    depends_on:
+      - fieldservice
+      - userservice
+      - projectservice
+      - keycloak
+
+  fieldservice:
+    build:
+      context: .
+      dockerfile: infra/dev/Dockerfile
+    command: ["air", "-c", "infra/dev/.air.fieldservice.toml"]
+    environment:
+      ADDRESS: ":8080"
+    volumes:
+      - .:/app
+
+  userservice:
+    build:
+      context: .
+      dockerfile: infra/dev/Dockerfile
+    command: ["air", "-c", "infra/dev/.air.userservice.toml"]
+    environment:
+      DATABASE_DSN: "postgres://felter:felter@postgres:5432/felter?sslmode=disable"
+      GRPC_ADDRESS: ":9091"
+      HTTP_ADDRESS: ":9090"
+    volumes:
+      - .:/app
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  projectservice:
+    build:
+      context: .
+      dockerfile: infra/dev/Dockerfile
+    command: ["air", "-c", "infra/dev/.air.projectservice.toml"]
+    environment:
+      DATABASE_DSN: "postgres://felter:felter@postgres:5432/felter?sslmode=disable"
+      ADDRESS: ":8081"
+    volumes:
+      - .:/app
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  web:
+    build:
+      context: ./web
+      dockerfile: Dockerfile.dev
+    volumes:
+      - ./web:/app
+      - /app/node_modules
+    ports:
+      - "4200:4200"

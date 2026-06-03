@@ -29,7 +29,9 @@ make test           # go test ./... -race -count=1
 ## Environment Variables
 
 All proxy config vars are **required** (no defaults):
-- `PROXY_HTTP_ADDRESS`, `PROXY_JWT_SECRET`, `PROXY_KEYCLOAK_URL`, `PROXY_KEYCLOAK_REALM`, `PROXY_KEYCLOAK_CLIENT_ID`, `PROXY_KEYCLOAK_CLIENT_SECRET`, `PROXY_KEYCLOAK_REDIRECT_URI`, `PROXY_USERSERVICE_GRPC_ADDR`, `PROXY_FIELD_URL`, `PROXY_USERSERVICE_URL`, `PROXY_PROJECTSERVICE_URL`
+- `PROXY_HTTP_ADDRESS`, `PROXY_JWT_SECRET`, `PROXY_KEYCLOAK_URL`, `PROXY_KEYCLOAK_PUBLIC_URL`, `PROXY_KEYCLOAK_REALM`, `PROXY_KEYCLOAK_CLIENT_ID`, `PROXY_KEYCLOAK_CLIENT_SECRET`, `PROXY_KEYCLOAK_REDIRECT_URI`, `PROXY_USERSERVICE_GRPC_ADDR`, `PROXY_FIELD_URL`, `PROXY_USERSERVICE_URL`, `PROXY_PROJECTSERVICE_URL`
+
+`PROXY_KEYCLOAK_PUBLIC_URL` is used for browser-facing redirects (login/logout URLs). When empty it falls back to `PROXY_KEYCLOAK_URL`. In Docker, set `PROXY_KEYCLOAK_URL` to the internal service name (e.g. `http://keycloak:8080`) and `PROXY_KEYCLOAK_PUBLIC_URL` to the host-facing URL (e.g. `http://localhost:8180`).
 
 fieldservice: `ADDRESS` > `PORT` > `:8080`. `CORS_ALLOWED_ORIGINS` empty = allow all.
 userservice/migrate: `DATABASE_DSN` required. `GRPC_ADDRESS` default `:9091`, `HTTP_ADDRESS` default `:9090`.
@@ -88,6 +90,18 @@ Each service has its own directory and tracking table (`<service>_migrations`). 
 
 - `go-ci.yml`: `go mod tidy` → `golangci-lint run` → `go vet ./...` → `go test ./... -race -count=1`
 - `web-ci.yml`: `bun install` → `bun run ng build --configuration production` → `bun run test`
+
+## Git / Commits
+
+Follow conventional commits where possible. Prefix with `feat:`, `fix:`, `refactor:`, `chore:`, etc. Use sentence case (lowercase after the colon). When a PR number exists, append `(#N)`.
+
+Examples from this repo:
+- `feat: add structured JSON logging with correlation ID propagation (#9)`
+- `refactor: remove workspace selector and restructure layout (#5)`
+- `feat(web): add workspace settings experience (#4)`
+- `Add process-compose for local dev orchestration (#8)`
+
+Prefer `feat:` for new features, `fix:` for bug fixes, `chore:` for build/tooling changes, `refactor:` for code restructuring without behavior change.
 
 ## Nix Dev Shell
 

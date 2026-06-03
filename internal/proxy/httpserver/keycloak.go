@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"time"
@@ -17,6 +18,7 @@ import (
 // KeycloakProvider implements the Provider interface for Keycloak OIDC.
 type KeycloakProvider struct {
 	URL           string
+	PublicURL     string
 	ClientID      string
 	ClientSecret  string
 	RedirectURI   string
@@ -26,9 +28,14 @@ type KeycloakProvider struct {
 }
 
 // NewKeycloakProvider creates a new KeycloakProvider with the given configuration.
-func NewKeycloakProvider(url, realm, clientID, clientSecret, redirectURI string) *KeycloakProvider {
+// publicURL is used for browser-facing redirects (login/logout). If empty, url is used.
+func NewKeycloakProvider(url, publicURL, realm, clientID, clientSecret, redirectURI string) *KeycloakProvider {
+	if publicURL == "" {
+		publicURL = url
+	}
 	return &KeycloakProvider{
 		URL:          url,
+		PublicURL:    publicURL,
 		Realm:        realm,
 		ClientID:     clientID,
 		ClientSecret: clientSecret,
@@ -44,7 +51,7 @@ func (p *KeycloakProvider) Type() string {
 // BuildAuthURL constructs the Keycloak authorization URL with the given state and redirect URI.
 func (p *KeycloakProvider) BuildAuthURL(state, redirectURI string) string {
 	return fmt.Sprintf("%s/realms/%s/protocol/openid-connect/auth?client_id=%s&redirect_uri=%s&response_type=code&scope=openid&state=%s",
-		p.URL, p.Realm, p.ClientID, url.QueryEscape(redirectURI), state)
+		p.PublicURL, p.Realm, p.ClientID, url.QueryEscape(redirectURI), state)
 }
 
 type oidcTokenResponse struct {
@@ -75,6 +82,10 @@ func (p *KeycloakProvider) ExchangeCode(_ context.Context, code, redirectURI str
 		return "", fmt.Errorf("read body: %w", err)
 	}
 
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("token endpoint returned status %d: %s", resp.StatusCode, string(body))
+	}
+
 	var tokenResp oidcTokenResponse
 	if err := json.Unmarshal(body, &tokenResp); err != nil {
 		return "", fmt.Errorf("unmarshal token response: %w, body: %s", err, string(body))
@@ -93,6 +104,8 @@ type oidcUserInfo struct {
 // GetUserInfo fetches user information from Keycloak using the provided access token.
 func (p *KeycloakProvider) GetUserInfo(ctx context.Context, accessToken string) (*ProviderUserInfo, error) {
 	userInfoURL := fmt.Sprintf("%s/realms/%s/protocol/openid-connect/userinfo", p.URL, p.Realm)
+	slog.Default().Debug("keycloak userinfo request", slog.String("url", userInfoURL))
+
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, userInfoURL, nil)
 	if err != nil {
 		return nil, fmt.Errorf("new request: %w", err)
@@ -112,6 +125,11 @@ func (p *KeycloakProvider) GetUserInfo(ctx context.Context, accessToken string) 
 	}
 
 	if resp.StatusCode != http.StatusOK {
+		slog.Default().Warn("keycloak userinfo failed",
+			slog.String("url", userInfoURL),
+			slog.Int("status", resp.StatusCode),
+			slog.String("body", string(body)),
+		)
 		return nil, fmt.Errorf("userinfo returned status %d: %s", resp.StatusCode, string(body))
 	}
 

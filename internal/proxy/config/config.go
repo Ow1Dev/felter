@@ -11,6 +11,7 @@ type Config struct {
 	HTTPAddress            string
 	JWTSecret              string
 	KeycloakURL            string
+	KeycloakPublicURL      string
 	KeycloakRealm          string
 	KeycloakClientID       string
 	KeycloakClientSecret   string
@@ -36,6 +37,11 @@ func LoadFromEnv(getenv func(string) string) (Config, error) {
 	keycloakURL := getenv("PROXY_KEYCLOAK_URL")
 	if keycloakURL == "" {
 		return Config{}, fmt.Errorf("PROXY_KEYCLOAK_URL is required")
+	}
+
+	keycloakPublicURL := getenv("PROXY_KEYCLOAK_PUBLIC_URL")
+	if keycloakPublicURL == "" {
+		keycloakPublicURL = keycloakURL
 	}
 
 	realm := getenv("PROXY_KEYCLOAK_REALM")
@@ -82,6 +88,7 @@ func LoadFromEnv(getenv func(string) string) (Config, error) {
 		HTTPAddress:            httpAddr,
 		JWTSecret:              secret,
 		KeycloakURL:            keycloakURL,
+		KeycloakPublicURL:      keycloakPublicURL,
 		KeycloakRealm:          realm,
 		KeycloakClientID:       clientID,
 		KeycloakClientSecret:   clientSecret,

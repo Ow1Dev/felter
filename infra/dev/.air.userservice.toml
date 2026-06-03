@@ -1,0 +1,10 @@
+root = "."
+tmp_dir = "tmp"
+
+[build]
+cmd = "go build -buildvcs=false -o ./tmp/userservice ./cmd/userservice"
+bin = "./tmp/userservice"
+delay = 1000
+exclude_dir = ["web", "docs", "keycloak", "infra", "build", "tmp", "proto"]
+exclude_regex = ["_test\\.go"]
+include_ext = ["go"]

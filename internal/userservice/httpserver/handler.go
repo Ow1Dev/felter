@@ -40,6 +40,7 @@ func handleListUsers(s store.Store) http.Handler {
 	}
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		slog.Default().Info("http ListUsers request")
 		if r.Method != http.MethodGet {
 			httputil.WriteError(w, http.StatusMethodNotAllowed, "method not allowed")
 			return
@@ -78,6 +79,7 @@ type userResponse struct {
 
 func handleGetUser(s store.Store) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		slog.Default().Info("http GetUser request", slog.String("path", r.URL.Path))
 		if r.Method != http.MethodGet {
 			httputil.WriteError(w, http.StatusMethodNotAllowed, "method not allowed")
 			return
