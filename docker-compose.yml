@@ -23,7 +23,9 @@ services:
     environment:
       KC_BOOTSTRAP_ADMIN_USERNAME: admin
       KC_BOOTSTRAP_ADMIN_PASSWORD: admin
+      KC_HOSTNAME: http://localhost:8180
       KC_HOSTNAME_STRICT: "false"
+      KC_HOSTNAME_STRICT_BACKCHANNEL: "false"
       KC_IMPORT: /opt/keycloak/data/import/felter-realm.json
     volumes:
       - keycloak_data:/opt/keycloak/data

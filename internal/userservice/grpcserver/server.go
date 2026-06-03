@@ -60,6 +60,7 @@ func UnaryInterceptor(ctx context.Context, req any, info *grpc.UnaryServerInfo, 
 
 // CreateUser handles the CreateUser RPC.
 func (srv *Server) CreateUser(ctx context.Context, req *pb.CreateUserRequest) (*pb.User, error) {
+	slog.Default().Info("grpc CreateUser", slog.String("email", req.Email))
 	if req.Email == "" || req.Username == "" {
 		return nil, fmt.Errorf("email and username are required")
 	}
@@ -72,6 +73,7 @@ func (srv *Server) CreateUser(ctx context.Context, req *pb.CreateUserRequest) (*
 
 // GetUser handles the GetUser RPC.
 func (srv *Server) GetUser(ctx context.Context, req *pb.GetUserRequest) (*pb.User, error) {
+	slog.Default().Info("grpc GetUser", slog.Int64("id", req.Id))
 	if req.Id == 0 {
 		return nil, fmt.Errorf("id is required")
 	}
@@ -84,6 +86,10 @@ func (srv *Server) GetUser(ctx context.Context, req *pb.GetUserRequest) (*pb.Use
 
 // GetUserFromProvider handles the GetUserFromProvider RPC.
 func (srv *Server) GetUserFromProvider(ctx context.Context, req *pb.GetUserFromProviderRequest) (*pb.User, error) {
+	slog.Default().Info("grpc GetUserFromProvider",
+		slog.String("provider", req.Provider),
+		slog.String("provider_id", req.ProviderId),
+	)
 	if req.Provider == "" || req.ProviderId == "" {
 		return nil, fmt.Errorf("provider and provider_id are required")
 	}
@@ -96,6 +102,11 @@ func (srv *Server) GetUserFromProvider(ctx context.Context, req *pb.GetUserFromP
 
 // CreateUserFromProvider handles the CreateUserFromProvider RPC.
 func (srv *Server) CreateUserFromProvider(ctx context.Context, req *pb.CreateUserFromProviderRequest) (*pb.User, error) {
+	slog.Default().Info("grpc CreateUserFromProvider",
+		slog.String("provider", req.Provider),
+		slog.String("provider_id", req.ProviderId),
+		slog.String("email", req.Email),
+	)
 	if req.Provider == "" || req.ProviderId == "" || req.Email == "" || req.Username == "" {
 		return nil, fmt.Errorf("provider, provider_id, email, and username are required")
 	}

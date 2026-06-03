@@ -8,13 +8,14 @@ endif
 
 API_ADDR ?= :8080
 WEB_DIR := web
+COMPOSE_FILES := -f docker-compose.yml -f infra/dev/compose.yml
 
-.PHONY: dev dev-app down-app start-fieldservice start-userservice start-proxy start-web start-projectservice fieldservice userservice proxy projectservice migrate web generate-api fmt tidy vet lint test fmt-check up down
+.PHONY: dev down-app fieldservice userservice proxy projectservice migrate web generate-api fmt tidy vet lint test fmt-check up down
 
 init:
 	@cd $(WEB_DIR) && bun install
 	@docker compose up -d
-	@for i in $$(seq 1 30); do docker exec felter-postgres-1 pg_isready -U felter > /dev/null 2>&1 && break || true; sleep 1; done
+	@for i in $$(seq 1 30); do docker compose exec postgres pg_isready -U felter > /dev/null 2>&1 && break || true; sleep 1; done
 	@make migrate
 
 web:
@@ -45,28 +46,11 @@ up:
 down:
 	@docker compose down -v
 
-dev: dev-app
-
-dev-app:
-	@process-compose up -f process-compose.yml -d
+dev:
+	@docker compose $(COMPOSE_FILES) up -d
 
 down-app:
-	@process-compose down -f process-compose.yml
-
-start-fieldservice:
-	@process-compose up -f process-compose.yml -d fieldservice
-
-start-userservice:
-	@process-compose up -f process-compose.yml -d userservice
-
-start-proxy:
-	@process-compose up -f process-compose.yml -d proxy
-
-start-web:
-	@process-compose up -f process-compose.yml -d web
-
-start-projectservice:
-	@process-compose up -f process-compose.yml -d projectservice
+	@docker compose -f infra/dev/compose.yml down
 
 fmt:
 	@gofumpt -w .

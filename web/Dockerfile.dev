@@ -1,0 +1,13 @@
+# Development server for the Angular SPA.
+# Mount ./web:/app for live reload.
+
+FROM oven/bun:1-alpine
+
+WORKDIR /app
+
+COPY package.json bun.lock ./
+RUN bun install
+
+EXPOSE 4200
+
+CMD ["bun", "start", "--", "--host", "0.0.0.0"]
