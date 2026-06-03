@@ -11,7 +11,7 @@ services:
   proxy:
     build:
       context: .
-      dockerfile: infra/dev/Dockerfile.go
+      dockerfile: infra/dev/Dockerfile
     command: ["air", "-c", "infra/dev/.air.proxy.toml"]
     environment:
       PROXY_HTTP_ADDRESS: ":9092"
@@ -39,7 +39,7 @@ services:
   fieldservice:
     build:
       context: .
-      dockerfile: infra/dev/Dockerfile.go
+      dockerfile: infra/dev/Dockerfile
     command: ["air", "-c", "infra/dev/.air.fieldservice.toml"]
     environment:
       ADDRESS: ":8080"
@@ -49,7 +49,7 @@ services:
   userservice:
     build:
       context: .
-      dockerfile: infra/dev/Dockerfile.go
+      dockerfile: infra/dev/Dockerfile
     command: ["air", "-c", "infra/dev/.air.userservice.toml"]
     environment:
       DATABASE_DSN: "postgres://felter:felter@postgres:5432/felter?sslmode=disable"
@@ -64,7 +64,7 @@ services:
   projectservice:
     build:
       context: .
-      dockerfile: infra/dev/Dockerfile.go
+      dockerfile: infra/dev/Dockerfile
     command: ["air", "-c", "infra/dev/.air.projectservice.toml"]
     environment:
       DATABASE_DSN: "postgres://felter:felter@postgres:5432/felter?sslmode=disable"

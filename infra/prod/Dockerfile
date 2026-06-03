@@ -1,8 +1,8 @@
 # Shared Go production image.
 # Build with:
-#   docker build -f infra/prod/Dockerfile.go --build-arg APP_NAME=<cmd_name> -t <image>:<tag> .
+#   docker build -f infra/prod/Dockerfile --build-arg APP_NAME=<cmd_name> -t <image>:<tag> .
 # Example:
-#   docker build -f infra/prod/Dockerfile.go --build-arg APP_NAME=proxy -t felter/proxy:latest .
+#   docker build -f infra/prod/Dockerfile --build-arg APP_NAME=proxy -t felter/proxy:latest .
 
 FROM golang:1.25-alpine AS builder
 

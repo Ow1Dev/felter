@@ -94,8 +94,8 @@ make vet             # go vet ./...
 
 ## Docker Images
 
-- **Dev Go image**: `infra/dev/Dockerfile.go` — mounts the repo for live reload.
-- **Prod Go image**: `infra/prod/Dockerfile.go` — multi-stage `scratch` image, pass `APP_NAME` build arg.
+- **Dev Go image**: `infra/dev/Dockerfile` — mounts the repo for live reload.
+- **Prod Go image**: `infra/prod/Dockerfile` — multi-stage `scratch` image, pass `APP_NAME` build arg.
 - **Web prod image**: `web/Dockerfile` — artifact-only, outputs `/dist`.
 - **Web dev image**: `web/Dockerfile.dev` — Bun-based dev server with live reload.
 
