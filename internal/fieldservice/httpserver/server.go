@@ -6,14 +6,15 @@ import (
 	"net/http"
 
 	"github.com/Ow1Dev/felter/internal/fieldservice/config"
+	"github.com/Ow1Dev/felter/internal/fieldservice/store"
 	"github.com/Ow1Dev/felter/internal/middleware"
 )
 
 // New builds the root handler with routes and middleware.
-func New(cfg config.Config, logger *slog.Logger) http.Handler {
+func New(_ config.Config, s store.Store, logger *slog.Logger) http.Handler {
 	mux := http.NewServeMux()
 
-	addRoutes(mux, cfg)
+	addRoutes(mux, s, logger)
 
 	var h http.Handler = mux
 	h = middleware.Recoverer(logger, h)

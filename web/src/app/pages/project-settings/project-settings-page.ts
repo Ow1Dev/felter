@@ -1,11 +1,14 @@
 import { NgClass } from '@angular/common';
-import { Component, computed, effect, inject, signal } from '@angular/core';
+import { Component, computed, effect, inject, model, signal } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { map } from 'rxjs/operators';
 import { toSignal } from '@angular/core/rxjs-interop';
 
 import { FormFieldComponent } from '../../components/ui/form-field/form-field';
 import { TextInputComponent } from '../../components/ui/text-input/text-input';
+import { SelectInputComponent } from '../../components/ui/select-input/select-input';
+import { ModalComponent } from '../../components/ui/modal/modal';
+import { FieldService, FIELD_TYPES, type FieldType } from '../../services/field.service';
 import { ProjectService } from '../../services/project.service';
 import { ProjectRouteService } from '../../services/project-route.service';
 
@@ -22,7 +25,7 @@ const TABS: SettingsTab[] = [
 
 @Component({
   standalone: true,
-  imports: [NgClass, FormFieldComponent, TextInputComponent],
+  imports: [NgClass, FormFieldComponent, TextInputComponent, SelectInputComponent, ModalComponent],
   host: {
     class: 'flex flex-1 min-h-full',
   },
@@ -109,12 +112,138 @@ const TABS: SettingsTab[] = [
                 </section>
               }
               @case ('datafields') {
-                <section class="flex flex-col gap-3">
-                  <h2 class="text-lg font-semibold text-foreground">Data settings</h2>
-                  <p class="text-sm text-muted-foreground">
-                    Data settings for {{ project.name }} are coming soon.
-                  </p>
-                </section>
+                @if (activeSchemaKey(); as schemaKey) {
+                  <!-- Schema Detail View -->
+                  <section class="flex flex-col gap-6">
+                    <div class="flex items-center justify-between">
+                      <button
+                        type="button"
+                        (click)="goToSchemaList()"
+                        class="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                      >
+                        &larr; Back to schemas
+                      </button>
+                      <button
+                        type="button"
+                        (click)="openFieldModal()"
+                        class="inline-flex items-center justify-center rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground shadow hover:bg-primary/90"
+                      >
+                        + Add field
+                      </button>
+                    </div>
+
+                    @if (activeSchema(); as schema) {
+                      <div class="flex flex-col gap-2">
+                        <h2 class="text-lg font-semibold text-foreground">{{ schema.name }}</h2>
+                        <p class="text-sm text-muted-foreground">Key: <code class="text-xs bg-muted px-1 py-0.5 rounded">{{ schema.key }}</code></p>
+                      </div>
+
+                      <div class="w-full">
+                        @if (schema.fields && schema.fields.length > 0) {
+                          <div class="rounded-xl border border-border overflow-hidden">
+                            <table class="w-full text-sm">
+                              <thead class="bg-muted">
+                                <tr>
+                                  <th class="px-4 py-2 text-left font-medium text-muted-foreground">Key</th>
+                                  <th class="px-4 py-2 text-left font-medium text-muted-foreground">Type</th>
+                                  <th class="px-4 py-2 text-right font-medium text-muted-foreground"></th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                @for (field of schema.fields; track field.key) {
+                                  <tr class="border-t border-border">
+                                    <td class="px-4 py-3 font-medium text-foreground">{{ field.key }}</td>
+                                    <td class="px-4 py-3 text-muted-foreground">
+                                      <code class="text-xs bg-muted px-1 py-0.5 rounded">{{ field.type }}</code>
+                                    </td>
+                                    <td class="px-4 py-3 text-right">
+                                      <button
+                                        type="button"
+                                        (click)="removeField(field.key)"
+                                        class="text-xs text-destructive hover:underline"
+                                      >
+                                        Remove
+                                      </button>
+                                    </td>
+                                  </tr>
+                                }
+                              </tbody>
+                            </table>
+                          </div>
+                        } @else {
+                          <p class="text-sm text-muted-foreground">No fields defined yet. Click "+ Add field" to create one.</p>
+                        }
+                      </div>
+                    } @else {
+                      <p class="text-sm text-muted-foreground">Loading schema...</p>
+                    }
+                  </section>
+                } @else {
+                  <!-- Schema List View -->
+                  <section class="flex flex-col gap-6">
+                    <div class="flex items-center justify-between">
+                      <div class="flex flex-col gap-2">
+                        <h2 class="text-lg font-semibold text-foreground">Schemas</h2>
+                        <p class="text-sm text-muted-foreground">
+                          Define data schemas for {{ project.name }}. Each schema holds a collection of typed fields.
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        (click)="openSchemaModal()"
+                        class="inline-flex items-center justify-center rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground shadow hover:bg-primary/90"
+                      >
+                        + New schema
+                      </button>
+                    </div>
+
+                    <div class="w-full">
+                      @if (schemas().length > 0) {
+                        <div class="rounded-xl border border-border overflow-hidden">
+                          <table class="w-full text-sm">
+                            <thead class="bg-muted">
+                              <tr>
+                                <th class="px-4 py-2 text-left font-medium text-muted-foreground">Name</th>
+                                <th class="px-4 py-2 text-left font-medium text-muted-foreground">Key</th>
+                                <th class="px-4 py-2 text-right font-medium text-muted-foreground"></th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              @for (schema of schemas(); track schema.key) {
+                                <tr class="border-t border-border">
+                                  <td class="px-4 py-3 font-medium text-foreground">{{ schema.name }}</td>
+                                  <td class="px-4 py-3 text-muted-foreground">
+                                    <code class="text-xs bg-muted px-1 py-0.5 rounded">{{ schema.key }}</code>
+                                  </td>
+                                  <td class="px-4 py-3 text-right">
+                                    <div class="flex items-center justify-end gap-3">
+                                      <button
+                                        type="button"
+                                        (click)="goToSchema(schema.key)"
+                                        class="text-sm text-primary hover:underline"
+                                      >
+                                        Edit fields
+                                      </button>
+                                      <button
+                                        type="button"
+                                        (click)="deleteSchema(schema.key)"
+                                        class="text-sm text-destructive hover:underline"
+                                      >
+                                        Delete
+                                      </button>
+                                    </div>
+                                  </td>
+                                </tr>
+                              }
+                            </tbody>
+                          </table>
+                        </div>
+                      } @else {
+                        <p class="text-sm text-muted-foreground">No schemas yet. Click "+ New schema" to create one.</p>
+                      }
+                    </div>
+                  </section>
+                }
               }
               @case ('view') {
                 <section class="flex flex-col gap-3">
@@ -136,6 +265,84 @@ const TABS: SettingsTab[] = [
         </div>
       </div>
     </section>
+
+    <!-- Modals rendered at the bottom of the DOM -->
+    <app-modal [(isOpen)]="showSchemaModal" title="Create schema" (backdropClick)="closeSchemaModal()">
+      <div class="flex flex-col gap-4">
+        <app-form-field [label]="'Schema key'" [for]="'schema-key-input'">
+          <app-text-input
+            id="schema-key-input"
+            [value]="modalSchemaKey()"
+            (valueChange)="modalSchemaKey.set($event)"
+            placeholder="e.g. tasks, orders, customers"
+          />
+        </app-form-field>
+
+        <app-form-field [label]="'Schema name'" [for]="'schema-name-input'">
+          <app-text-input
+            id="schema-name-input"
+            [value]="modalSchemaName()"
+            (valueChange)="modalSchemaName.set($event)"
+            placeholder="e.g. Tasks, Orders, Customers"
+          />
+        </app-form-field>
+
+        <div class="flex justify-end gap-3">
+          <button
+            type="button"
+            (click)="closeSchemaModal()"
+            class="inline-flex items-center justify-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium text-foreground shadow-sm hover:bg-accent"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            (click)="createSchema()"
+            class="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow hover:bg-primary/90"
+          >
+            Create
+          </button>
+        </div>
+      </div>
+    </app-modal>
+
+    <app-modal [(isOpen)]="showFieldModal" title="Add field" (backdropClick)="closeFieldModal()">
+      <div class="flex flex-col gap-4">
+        <app-form-field [label]="'Field key'" [for]="'field-key-input'">
+          <app-text-input
+            id="field-key-input"
+            [value]="modalFieldKey()"
+            (valueChange)="modalFieldKey.set($event)"
+            placeholder="e.g. title, priority, due_date"
+          />
+        </app-form-field>
+
+        <app-form-field [label]="'Field type'" [for]="'field-type-select'">
+          <app-select-input
+            id="field-type-select"
+            [options]="fieldTypeOptions()"
+            [(value)]="modalFieldType"
+          />
+        </app-form-field>
+
+        <div class="flex justify-end gap-3">
+          <button
+            type="button"
+            (click)="closeFieldModal()"
+            class="inline-flex items-center justify-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium text-foreground shadow-sm hover:bg-accent"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            (click)="addField()"
+            class="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow hover:bg-primary/90"
+          >
+            Add
+          </button>
+        </div>
+      </div>
+    </app-modal>
   `,
 })
 export class ProjectSettingsPageComponent {
@@ -143,14 +350,24 @@ export class ProjectSettingsPageComponent {
   private readonly route = inject(ActivatedRoute);
   private readonly projectService = inject(ProjectService);
   private readonly projectRoute = inject(ProjectRouteService);
+  private readonly fieldService = inject(FieldService);
 
   protected readonly tabs = TABS;
   protected readonly project = this.projectRoute.project;
   protected readonly projectSlug = this.projectRoute.projectSlug;
 
+  protected readonly schemas = this.fieldService.schemas;
+  protected readonly activeSchema = this.fieldService.activeSchema;
+  protected readonly fieldTypes = FIELD_TYPES;
+
   private readonly tabParam = toSignal(
     this.route.paramMap.pipe(map(params => params.get('tab'))),
     { initialValue: this.route.snapshot.paramMap.get('tab') },
+  );
+
+  private readonly subTabParam = toSignal(
+    this.route.paramMap.pipe(map(params => params.get('subTab'))),
+    { initialValue: this.route.snapshot.paramMap.get('subTab') },
   );
 
   protected readonly activeTab = computed(() => {
@@ -159,14 +376,57 @@ export class ProjectSettingsPageComponent {
     return TABS.some(t => t.id === tab) ? tab : 'general';
   });
 
+  protected readonly activeSchemaKey = computed(() => {
+    const tab = this.activeTab();
+    const sub = this.subTabParam();
+    if (tab === 'datafields' && sub) {
+      return sub;
+    }
+    return null;
+  });
+
   protected readonly nameInputId = 'project-name-input';
   protected readonly projectName = signal('');
+
+  protected readonly showSchemaModal = signal(false);
+  protected readonly modalSchemaKey = signal('');
+  protected readonly modalSchemaName = signal('');
+
+  protected readonly showFieldModal = signal(false);
+  protected readonly modalFieldKey = signal('');
+  protected readonly modalFieldType = model<FieldType>('string');
+
+  protected readonly fieldTypeOptions = computed(() =>
+    FIELD_TYPES.map(t => ({ value: t, label: t })),
+  );
 
   constructor() {
     effect(
       () => {
         const current = this.project();
         if (current) this.projectName.set(current.name);
+      },
+      { allowSignalWrites: true },
+    );
+
+    effect(
+      () => {
+        const slug = this.projectSlug();
+        const tab = this.activeTab();
+        if (slug && tab === 'datafields') {
+          this.fieldService.loadSchemas(slug);
+        }
+      },
+      { allowSignalWrites: true },
+    );
+
+    effect(
+      () => {
+        const slug = this.projectSlug();
+        const schemaKey = this.activeSchemaKey();
+        if (slug && schemaKey) {
+          this.fieldService.loadSchema(slug, schemaKey);
+        }
       },
       { allowSignalWrites: true },
     );
@@ -204,5 +464,91 @@ export class ProjectSettingsPageComponent {
 
     // TODO: wire to backend update when available
     console.warn('Project rename not yet implemented');
+  }
+
+  protected openSchemaModal(): void {
+    this.modalSchemaKey.set('');
+    this.modalSchemaName.set('');
+    this.showSchemaModal.set(true);
+  }
+
+  protected closeSchemaModal(): void {
+    this.showSchemaModal.set(false);
+  }
+
+  protected createSchema(): void {
+    const slug = this.projectSlug();
+    const key = this.modalSchemaKey().trim();
+    const name = this.modalSchemaName().trim();
+
+    if (!slug || !key || !name) return;
+
+    this.fieldService.createSchema({ project_slug: slug, key, name }).subscribe({
+      next: () => {
+        this.closeSchemaModal();
+        this.fieldService.loadSchemas(slug);
+      },
+      error: err => console.error('Failed to create schema:', err),
+    });
+  }
+
+  protected deleteSchema(schemaKey: string): void {
+    const slug = this.projectSlug();
+    if (!slug) return;
+
+    this.fieldService.deleteSchema(slug, schemaKey).subscribe({
+      next: () => this.fieldService.loadSchemas(slug),
+      error: err => console.error('Failed to delete schema:', err),
+    });
+  }
+
+  protected goToSchema(schemaKey: string): void {
+    const slug = this.projectSlug();
+    if (!slug) return;
+    void this.router.navigate(['/', slug, 'settings', 'datafields', schemaKey]);
+  }
+
+  protected goToSchemaList(): void {
+    const slug = this.projectSlug();
+    if (!slug) return;
+    void this.router.navigate(['/', slug, 'settings', 'datafields']);
+  }
+
+  protected openFieldModal(): void {
+    this.modalFieldKey.set('');
+    this.modalFieldType.set('string');
+    this.showFieldModal.set(true);
+  }
+
+  protected closeFieldModal(): void {
+    this.showFieldModal.set(false);
+  }
+
+  protected addField(): void {
+    const slug = this.projectSlug();
+    const schemaKey = this.activeSchemaKey();
+    const key = this.modalFieldKey().trim();
+    const type = this.modalFieldType();
+
+    if (!slug || !schemaKey || !key) return;
+
+    this.fieldService.createField(slug, schemaKey, { key, type }).subscribe({
+      next: () => {
+        this.closeFieldModal();
+        this.fieldService.loadSchema(slug, schemaKey);
+      },
+      error: err => console.error('Failed to create field:', err),
+    });
+  }
+
+  protected removeField(fieldKey: string): void {
+    const slug = this.projectSlug();
+    const schemaKey = this.activeSchemaKey();
+    if (!slug || !schemaKey) return;
+
+    this.fieldService.deleteField(slug, schemaKey, fieldKey).subscribe({
+      next: () => this.fieldService.loadSchema(slug, schemaKey),
+      error: err => console.error('Failed to delete field:', err),
+    });
   }
 }

@@ -43,8 +43,12 @@ services:
     command: ["air", "-c", "infra/dev/.air.fieldservice.toml"]
     environment:
       ADDRESS: ":8080"
+      DATABASE_DSN: "postgres://felter:felter@postgres:5432/felter?sslmode=disable"
     volumes:
       - .:/app
+    depends_on:
+      postgres:
+        condition: service_healthy
 
   userservice:
     build:

@@ -6,6 +6,9 @@ import { SidebarComponent } from '../../components/sidebar/sidebar';
 @Component({
   selector: 'app-project-layout',
   imports: [SidebarComponent, RouterOutlet],
+  host: {
+    class: 'block w-full h-full',
+  },
   template: `
     <div class="flex w-full h-full overflow-hidden">
       <app-sidebar />

@@ -74,6 +74,13 @@ export const routes: Routes = [
                 m => m.ProjectSettingsPageComponent,
               ),
           },
+          {
+            path: ':tab/:subTab',
+            loadComponent: () =>
+              import('./pages/project-settings/project-settings-page').then(
+                m => m.ProjectSettingsPageComponent,
+              ),
+          },
         ],
       },
     ],

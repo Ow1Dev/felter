@@ -11,6 +11,7 @@ import (
 // Config holds server runtime configuration values.
 type Config struct {
 	Address      string
+	DatabaseDSN  string
 	ReadTimeout  time.Duration
 	WriteTimeout time.Duration
 	IdleTimeout  time.Duration
@@ -21,6 +22,7 @@ func Load() Config {
 	addr := getAddr()
 	return Config{
 		Address:      addr,
+		DatabaseDSN:  os.Getenv("DATABASE_DSN"),
 		ReadTimeout:  getDurationEnv("READ_TIMEOUT", 15*time.Second),
 		WriteTimeout: getDurationEnv("WRITE_TIMEOUT", 15*time.Second),
 		IdleTimeout:  getDurationEnv("IDLE_TIMEOUT", 60*time.Second),
