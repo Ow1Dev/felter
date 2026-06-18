@@ -1,9 +1,11 @@
 import { Routes } from '@angular/router';
 import { authGuard } from './guards/auth.guard';
+import { callbackGuard } from './guards/callback.guard';
 
 export const routes: Routes = [
   {
     path: 'callback',
+    canActivate: [callbackGuard],
     loadComponent: () =>
       import('./pages/callback/callback-page').then(m => m.CallbackPageComponent),
   },

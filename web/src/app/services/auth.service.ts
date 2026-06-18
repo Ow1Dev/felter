@@ -1,6 +1,6 @@
 import { Injectable, signal, computed } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { HttpClient, HttpErrorResponse } from '@angular/common/http';
+import { Observable, firstValueFrom } from 'rxjs';
 import { environment } from '../../environments/environment';
 
 export interface AuthResponse {
@@ -24,10 +24,20 @@ export class AuthService {
   readonly currentUser = signal<CurrentUser | null>(null);
   readonly isAuthenticated = computed(() => this.token() !== null);
 
+  private initResolve!: () => void;
+  private readonly initPromise = new Promise<void>(resolve => {
+    this.initResolve = resolve;
+  });
+
   constructor(private http: HttpClient) {
-    if (this.isAuthenticated()) {
-      this.fetchCurrentUser();
-    }
+    // Defer session restoration so the service is fully constructed
+    // before the auth interceptor re-injects it for the /me request.
+    queueMicrotask(() => this.restoreSession());
+  }
+
+  /** Returns a promise that resolves once auth state has been restored. */
+  waitForInit(): Promise<void> {
+    return this.initPromise;
   }
 
   login(): void {
@@ -49,7 +59,6 @@ export class AuthService {
         .subscribe({
           next: response => {
             this.setToken(response.token);
-            window.history.replaceState({}, '', window.location.pathname);
             this.fetchCurrentUser().then(() => {
               observer.next(response);
               observer.complete();
@@ -83,18 +92,28 @@ export class AuthService {
     return this.http.get<CurrentUser>(`${environment.identityUrl}/me`);
   }
 
+  private restoreSession(): void {
+    if (this.isAuthenticated()) {
+      this.fetchCurrentUser().finally(() => this.initResolve());
+    } else {
+      this.initResolve();
+    }
+  }
+
   private setToken(token: string): void {
     localStorage.setItem(this.TOKEN_KEY, token);
     this.token.set(token);
   }
 
-  private fetchCurrentUser(): Promise<void> {
-    return new Promise(resolve => {
-      this.getCurrentUser().subscribe({
-        next: user => { this.currentUser.set(user); resolve(); },
-        error: () => { this.clearToken(); resolve(); },
-      });
-    });
+  private async fetchCurrentUser(): Promise<void> {
+    try {
+      const user = await firstValueFrom(this.getCurrentUser());
+      this.currentUser.set(user);
+    } catch (err) {
+      if (err instanceof HttpErrorResponse && err.status === 401) {
+        this.clearToken();
+      }
+    }
   }
 
   private clearToken(): void {

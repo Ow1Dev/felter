@@ -36,13 +36,17 @@ export class CallbackPageComponent implements OnInit {
     const code = params.get('code');
 
     if (!code) {
-      this.router.navigate(['/login']);
+      if (this.authService.isAuthenticated()) {
+        this.router.navigate(['/'], { replaceUrl: true });
+        return;
+      }
+      this.router.navigate(['/login'], { replaceUrl: true });
       return;
     }
 
     this.authService.handleCallback().subscribe({
       next: () => {
-        this.router.navigate(['/']);
+        this.router.navigate(['/'], { replaceUrl: true });
       },
       error: () => {
         this.error = true;
@@ -51,6 +55,6 @@ export class CallbackPageComponent implements OnInit {
   }
 
   goToLogin(): void {
-    this.router.navigate(['/login']);
+    this.router.navigate(['/login'], { replaceUrl: true });
   }
 }
