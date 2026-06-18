@@ -10,4 +10,6 @@ type UserCache interface {
 	Get(ctx context.Context, provider, providerID string) (userID int64, found bool, err error)
 	// Set stores a mapping from (provider, providerID) to user ID.
 	Set(ctx context.Context, provider, providerID string, userID int64) error
+	// Close releases any resources held by the cache.
+	Close()
 }

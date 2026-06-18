@@ -1,6 +1,6 @@
 import { Injectable, signal } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
-import { Observable, tap } from 'rxjs';
+import { Observable } from 'rxjs';
 import { environment } from '../../environments/environment';
 import type { components } from '../api/fieldservice';
 
@@ -44,6 +44,7 @@ export class FieldService {
   }
 
   loadSchema(projectSlug: string, schemaKey: string): void {
+    this.activeSchema.set(null);
     this.getSchema(projectSlug, schemaKey).subscribe({
       next: schema => this.activeSchema.set(schema),
       error: err => console.error('Failed to load schema:', err),

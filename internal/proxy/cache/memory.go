@@ -2,6 +2,7 @@ package cache
 
 import (
 	"context"
+	"fmt"
 	"sync"
 	"time"
 )
@@ -14,11 +15,12 @@ type entry struct {
 
 // MemoryCache is an in-memory UserCache implementation with per-entry TTL.
 type MemoryCache struct {
-	mu      sync.RWMutex
-	data    map[string]entry
-	ttl     time.Duration
-	cleaner *time.Ticker
-	done    chan struct{}
+	mu        sync.RWMutex
+	data      map[string]entry
+	ttl       time.Duration
+	cleaner   *time.Ticker
+	done      chan struct{}
+	closeOnce sync.Once
 }
 
 // NewMemoryCache creates a new in-memory cache with the given TTL.
@@ -36,12 +38,14 @@ func NewMemoryCache(ttl time.Duration) *MemoryCache {
 
 // Close stops the background cleanup goroutine.
 func (c *MemoryCache) Close() {
-	close(c.done)
-	c.cleaner.Stop()
+	c.closeOnce.Do(func() {
+		close(c.done)
+		c.cleaner.Stop()
+	})
 }
 
 func (c *MemoryCache) key(provider, providerID string) string {
-	return provider + ":" + providerID
+	return fmt.Sprintf("%s\x00%s", provider, providerID)
 }
 
 // Get implements UserCache.

@@ -2,6 +2,7 @@ package httpserver
 
 import (
 	"context"
+	"log/slog"
 	"net/http"
 	"net/http/httputil"
 	"strconv"
@@ -57,7 +58,9 @@ func (s *Server) resolveUserID(ctx context.Context, providerID string) (int64, e
 	provider := s.provider.Type()
 
 	// Try cache first.
-	if userID, found, err := s.userCache.Get(ctx, provider, providerID); err == nil && found {
+	if userID, found, err := s.userCache.Get(ctx, provider, providerID); err != nil {
+		s.logger.Warn("cache get failed", slog.String("err", err.Error()))
+	} else if found {
 		return userID, nil
 	}
 

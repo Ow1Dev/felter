@@ -75,8 +75,8 @@ func (s *Server) Close() {
 	if s.grpcConn != nil {
 		_ = s.grpcConn.Close()
 	}
-	if c, ok := s.userCache.(*cache.MemoryCache); ok {
-		c.Close()
+	if s.userCache != nil {
+		s.userCache.Close()
 	}
 }
 

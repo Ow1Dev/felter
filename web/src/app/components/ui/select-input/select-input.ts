@@ -14,11 +14,12 @@ export interface SelectOption {
     class: 'block w-full',
   },
   template: `
-    <div class="relative" #container>
+    <div class="relative">
       <button
         type="button"
         (click)="toggle()"
-        class="w-full rounded-md border px-3 py-2 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring flex items-center justify-between"
+        [disabled]="disabled()"
+        class="w-full rounded-md border px-3 py-2 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring flex items-center justify-between disabled:opacity-50 disabled:cursor-not-allowed"
         style="background-color: var(--popover); border-color: var(--border); color: var(--popover-foreground);"
         [class.ring-2]="isOpen()"
         [class.ring-ring]="isOpen()"
@@ -64,7 +65,6 @@ export interface SelectOption {
   `,
 })
 export class SelectInputComponent {
-  readonly id = input<string | null>(null);
   readonly disabled = input<boolean>(false);
   readonly options = input<SelectOption[]>([]);
 

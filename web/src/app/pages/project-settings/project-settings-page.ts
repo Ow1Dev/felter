@@ -1,7 +1,7 @@
 import { NgClass } from '@angular/common';
 import { Component, computed, effect, inject, model, signal } from '@angular/core';
-import { ActivatedRoute, Router } from '@angular/router';
-import { map } from 'rxjs/operators';
+import { ActivatedRoute, NavigationEnd, Router } from '@angular/router';
+import { filter, map, startWith } from 'rxjs/operators';
 import { toSignal } from '@angular/core/rxjs-interop';
 
 import { FormFieldComponent } from '../../components/ui/form-field/form-field';
@@ -358,15 +358,22 @@ export class ProjectSettingsPageComponent {
 
   protected readonly schemas = this.fieldService.schemas;
   protected readonly activeSchema = this.fieldService.activeSchema;
-  protected readonly fieldTypes = FIELD_TYPES;
 
   private readonly tabParam = toSignal(
-    this.route.paramMap.pipe(map(params => params.get('tab'))),
+    this.router.events.pipe(
+      filter(event => event instanceof NavigationEnd),
+      map(() => this.route.snapshot.paramMap.get('tab')),
+      startWith(this.route.snapshot.paramMap.get('tab')),
+    ),
     { initialValue: this.route.snapshot.paramMap.get('tab') },
   );
 
   private readonly subTabParam = toSignal(
-    this.route.paramMap.pipe(map(params => params.get('subTab'))),
+    this.router.events.pipe(
+      filter(event => event instanceof NavigationEnd),
+      map(() => this.route.snapshot.paramMap.get('subTab')),
+      startWith(this.route.snapshot.paramMap.get('subTab')),
+    ),
     { initialValue: this.route.snapshot.paramMap.get('subTab') },
   );
 
@@ -495,6 +502,10 @@ export class ProjectSettingsPageComponent {
   protected deleteSchema(schemaKey: string): void {
     const slug = this.projectSlug();
     if (!slug) return;
+
+    if (!window.confirm(`Are you sure you want to delete the "${schemaKey}" schema? This action cannot be undone.`)) {
+      return;
+    }
 
     this.fieldService.deleteSchema(slug, schemaKey).subscribe({
       next: () => this.fieldService.loadSchemas(slug),
