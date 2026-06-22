@@ -1,7 +1,7 @@
 # Dev application services compose file.
 # Start alongside the base docker-compose.yml (Postgres + Keycloak).
 #
-#   docker compose -f docker-compose.yml -f infra/dev/compose.yml up -d
+#   docker compose -f infra.compose.yml -f infra/dev/compose.yml up -d
 #
 # Or simply: make dev
 
@@ -12,7 +12,7 @@ services:
     build:
       context: .
       dockerfile: infra/dev/Dockerfile
-    command: ["air", "-c", "infra/dev/.air.proxy.toml"]
+    command: ["air", "-c", "cmd/proxy/.air.proxy.toml"]
     environment:
       PROXY_HTTP_ADDRESS: ":9092"
       PROXY_JWT_SECRET: "${PROXY_JWT_SECRET}"
@@ -40,7 +40,7 @@ services:
     build:
       context: .
       dockerfile: infra/dev/Dockerfile
-    command: ["air", "-c", "infra/dev/.air.fieldservice.toml"]
+    command: ["air", "-c", "cmd/fieldservice/.air.fieldservice.toml"]
     environment:
       ADDRESS: ":8080"
       DATABASE_DSN: "postgres://felter:felter@postgres:5432/felter?sslmode=disable"
@@ -54,7 +54,7 @@ services:
     build:
       context: .
       dockerfile: infra/dev/Dockerfile
-    command: ["air", "-c", "infra/dev/.air.userservice.toml"]
+    command: ["air", "-c", "cmd/userservice/.air.userservice.toml"]
     environment:
       DATABASE_DSN: "postgres://felter:felter@postgres:5432/felter?sslmode=disable"
       GRPC_ADDRESS: ":9091"
@@ -69,7 +69,7 @@ services:
     build:
       context: .
       dockerfile: infra/dev/Dockerfile
-    command: ["air", "-c", "infra/dev/.air.projectservice.toml"]
+    command: ["air", "-c", "cmd/projectservice/.air.projectservice.toml"]
     environment:
       DATABASE_DSN: "postgres://felter:felter@postgres:5432/felter?sslmode=disable"
       ADDRESS: ":8081"
