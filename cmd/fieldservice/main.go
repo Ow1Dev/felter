@@ -10,8 +10,10 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/Ow1Dev/felter/internal/db"
 	"github.com/Ow1Dev/felter/internal/fieldservice/config"
 	"github.com/Ow1Dev/felter/internal/fieldservice/httpserver"
+	"github.com/Ow1Dev/felter/internal/fieldservice/store"
 	"github.com/Ow1Dev/felter/internal/log"
 )
 
@@ -30,7 +32,15 @@ func run(ctx context.Context, cfg config.Config) error {
 	logger := log.New()
 	slog.SetDefault(logger)
 
-	handler := httpserver.New(cfg, logger)
+	pool, err := db.Open(cfg.DatabaseDSN)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = pool.Close() }()
+
+	s := store.NewPostgresStore(pool)
+	handler := httpserver.New(cfg, s, logger)
+
 	srv := &http.Server{
 		Addr:         cfg.Address,
 		Handler:      handler,

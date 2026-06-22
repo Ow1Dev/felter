@@ -1,9 +1,11 @@
 import { Routes } from '@angular/router';
 import { authGuard } from './guards/auth.guard';
+import { callbackGuard } from './guards/callback.guard';
 
 export const routes: Routes = [
   {
     path: 'callback',
+    canActivate: [callbackGuard],
     loadComponent: () =>
       import('./pages/callback/callback-page').then(m => m.CallbackPageComponent),
   },
@@ -69,6 +71,13 @@ export const routes: Routes = [
           },
           {
             path: ':tab',
+            loadComponent: () =>
+              import('./pages/project-settings/project-settings-page').then(
+                m => m.ProjectSettingsPageComponent,
+              ),
+          },
+          {
+            path: ':tab/:subTab',
             loadComponent: () =>
               import('./pages/project-settings/project-settings-page').then(
                 m => m.ProjectSettingsPageComponent,

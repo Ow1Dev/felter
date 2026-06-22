@@ -1,5 +1,5 @@
 import { TestBed } from '@angular/core/testing';
-import { ActivatedRoute, convertToParamMap, Router } from '@angular/router';
+import { ActivatedRoute, convertToParamMap, NavigationEnd, Router } from '@angular/router';
 import { BehaviorSubject } from 'rxjs';
 import { vi } from 'vitest';
 
@@ -9,6 +9,7 @@ import { ProjectRouteService } from '../../services/project-route.service';
 
 class RouterStub {
   navigate = vi.fn().mockResolvedValue(true);
+  events = new BehaviorSubject<any>(null);
 }
 
 function createActivatedRouteStub(): ActivatedRoute & { setTab(tab: string | null): void } {
@@ -83,9 +84,11 @@ describe('ProjectSettingsPageComponent', () => {
     const fixture = TestBed.createComponent(ProjectSettingsPageComponent);
     fixture.detectChanges();
 
+    const routerStub = TestBed.inject(Router) as unknown as RouterStub;
     routeStub.setTab('datafields');
+    routerStub.events.next(new NavigationEnd(1, '/', '/'));
     fixture.detectChanges();
 
-    expect(fixture.nativeElement.textContent).toContain('Data settings');
+    expect(fixture.nativeElement.textContent).toContain('Schemas');
   });
 });

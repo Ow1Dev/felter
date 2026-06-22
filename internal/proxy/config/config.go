@@ -4,6 +4,7 @@ package config
 import (
 	"fmt"
 	"os"
+	"time"
 )
 
 // Config holds proxy runtime configuration values.
@@ -20,6 +21,7 @@ type Config struct {
 	FieldURL               string
 	UserserviceURL         string
 	ProjectserviceURL      string
+	CacheTTL               time.Duration
 }
 
 // LoadFromEnv reads configuration from environment variables.
@@ -84,6 +86,13 @@ func LoadFromEnv(getenv func(string) string) (Config, error) {
 		return Config{}, fmt.Errorf("PROXY_PROJECTSERVICE_URL is required")
 	}
 
+	cacheTTL := 1 * time.Hour
+	if v := getenv("PROXY_CACHE_TTL"); v != "" {
+		if d, err := time.ParseDuration(v); err == nil {
+			cacheTTL = d
+		}
+	}
+
 	return Config{
 		HTTPAddress:            httpAddr,
 		JWTSecret:              secret,
@@ -97,6 +106,7 @@ func LoadFromEnv(getenv func(string) string) (Config, error) {
 		FieldURL:               fieldURL,
 		UserserviceURL:         userserviceURL,
 		ProjectserviceURL:      projectserviceURL,
+		CacheTTL:               cacheTTL,
 	}, nil
 }
 

@@ -18,8 +18,8 @@ init:
 	@make migrate
 
 generate-api:
-	@oapi-codegen --config internal/projectservice/api/oapi-codegen.yaml docs/api/projectservice.yaml
-	@cd $(WEB_DIR) && bunx openapi-typescript ../docs/api/projectservice.yaml -o src/app/api/projectservice.ts
+	@./scripts/generate-go-api.sh
+	@./scripts/generate-ts-api.sh
 
 migrate:
 	@go build -buildvcs=false -o build/migrate ./cmd/migrate && ./build/migrate

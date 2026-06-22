@@ -13,11 +13,11 @@ func TestServerRoutes(t *testing.T) {
 	cfg := config.Config{
 		Address: ":0",
 	}
-	h := New(cfg, slog.Default())
+	h := New(cfg, nil, slog.Default())
 
-	t.Run("hello route", func(t *testing.T) {
+	t.Run("healthz route", func(t *testing.T) {
 		rr := httptest.NewRecorder()
-		req := httptest.NewRequest(http.MethodGet, "/hello", nil)
+		req := httptest.NewRequest(http.MethodGet, "/healthz", nil)
 		h.ServeHTTP(rr, req)
 		if rr.Code != http.StatusOK {
 			t.Fatalf("status = %d", rr.Code)

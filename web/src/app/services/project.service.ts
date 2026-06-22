@@ -56,6 +56,10 @@ export class ProjectService {
     return this.http.get<Project[]>(environment.projectsUrl);
   }
 
+  getProject(slug: string): Observable<Project> {
+    return this.http.get<Project>(`${environment.projectsUrl}/${slug}`);
+  }
+
   createProject(request: CreateProjectRequest): Observable<Project> {
     return this.http.post<Project>(environment.projectsUrl, request);
   }
@@ -64,6 +68,25 @@ export class ProjectService {
     this.listProjects().subscribe({
       next: projects => this.projects.set(projects),
       error: err => console.error('Failed to load projects:', err),
+    });
+  }
+
+  loadProject(slug: string): void {
+    this.getProject(slug).subscribe({
+      next: project => {
+        this.projects.update(list => {
+          const idx = list.findIndex(p => p.slug === slug);
+          if (idx >= 0) {
+            const updated = [...list];
+            updated[idx] = project;
+            return updated;
+          }
+          return [...list, project];
+        });
+        this.activeProject.set(project);
+        this.persistActiveProject(slug);
+      },
+      error: err => console.error('Failed to load project:', err),
     });
   }
 

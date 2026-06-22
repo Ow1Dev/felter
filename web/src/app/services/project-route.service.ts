@@ -12,6 +12,7 @@ export class ProjectRouteService {
   private readonly projectService = inject(ProjectService);
 
   private readonly slug = signal<string | null>(null);
+  private readonly loadingSlugs = new Set<string>();
 
   /** Currently active project slug pulled from the router or fallback to active project. */
   readonly projectSlug = computed(() => {
@@ -25,7 +26,11 @@ export class ProjectRouteService {
   readonly project = computed<Project | null>(() => {
     const current = this.projectSlug();
     if (!current) return null;
-    return this.projectService.getBySlug(current) ?? null;
+    const fromList = this.projectService.getBySlug(current);
+    if (fromList) return fromList;
+    const active = this.projectService.activeProject();
+    if (active?.slug === current) return active;
+    return null;
   });
 
   constructor() {
@@ -41,13 +46,21 @@ export class ProjectRouteService {
     const slug = this.extractSlug(snapshot);
     this.slug.set(slug);
 
-    if (slug) {
-      if (this.projectService.projects().length === 0) {
-        this.projectService.loadProjectsAndSetActive(slug);
-      } else {
-        this.projectService.setActiveBySlug(slug);
-      }
+    if (!slug) return;
+
+    const active = this.projectService.activeProject();
+    if (active?.slug === slug) return;
+
+    if (this.loadingSlugs.has(slug)) return;
+
+    const cached = this.projectService.getBySlug(slug);
+    if (cached) {
+      this.projectService.setActiveBySlug(slug);
+      return;
     }
+
+    this.loadingSlugs.add(slug);
+    this.projectService.loadProject(slug);
   }
 
   private extractSlug(route: ActivatedRouteSnapshot | null): string | null {

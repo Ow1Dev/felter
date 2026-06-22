@@ -62,7 +62,7 @@ export class ProjectRedirectComponent implements OnInit {
     }
 
     if (this.projectService.projects().length === 0) {
-      this.projectService.loadProjectsAndSetActive(slug);
+      this.projectService.loadProject(slug);
     }
   }
 }

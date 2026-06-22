@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/Ow1Dev/felter/internal/log"
+	"github.com/Ow1Dev/felter/internal/proxy/cache"
 	"github.com/Ow1Dev/felter/internal/proxy/config"
 	"github.com/Ow1Dev/felter/internal/proxy/jwt"
 	"github.com/Ow1Dev/felter/internal/userservice/pb"
@@ -28,10 +29,11 @@ type Server struct {
 	grpcClient pb.UserServiceClient
 	provider   Provider
 	logger     *slog.Logger
+	userCache  cache.UserCache
 }
 
 // New creates a new Server with the given config and logger.
-func New(cfg config.Config, logger *slog.Logger) *Server {
+func New(cfg config.Config, logger *slog.Logger, userCache cache.UserCache) *Server {
 	corrInterceptor := func(ctx context.Context, method string, req, reply any, cc *grpc.ClientConn, invoker grpc.UnaryInvoker, opts ...grpc.CallOption) error {
 		if id := log.CorrelationID(ctx); id != "" {
 			ctx = metadata.AppendToOutgoingContext(ctx, "x-correlation-id", id)
@@ -64,13 +66,17 @@ func New(cfg config.Config, logger *slog.Logger) *Server {
 		grpcClient: pb.NewUserServiceClient(conn),
 		provider:   provider,
 		logger:     logger,
+		userCache:  userCache,
 	}
 }
 
-// Close releases the gRPC connection.
+// Close releases the gRPC connection and cache resources.
 func (s *Server) Close() {
 	if s.grpcConn != nil {
 		_ = s.grpcConn.Close()
+	}
+	if s.userCache != nil {
+		s.userCache.Close()
 	}
 }
 

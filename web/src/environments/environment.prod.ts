@@ -4,4 +4,5 @@ export const environment = {
   identityUrl: '/api/auth',
   usersUrl: '/api/users',
   projectsUrl: '/api/projects',
+  fieldUrl: '/api/field',
 };

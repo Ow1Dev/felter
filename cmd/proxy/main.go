@@ -13,6 +13,7 @@ import (
 
 	"github.com/Ow1Dev/felter/internal/log"
 	"github.com/Ow1Dev/felter/internal/middleware"
+	"github.com/Ow1Dev/felter/internal/proxy/cache"
 	"github.com/Ow1Dev/felter/internal/proxy/config"
 	"github.com/Ow1Dev/felter/internal/proxy/httpserver"
 )
@@ -31,7 +32,9 @@ func run(ctx context.Context, cfg config.Config) error {
 	logger := log.New()
 	slog.SetDefault(logger)
 
-	srv := httpserver.New(cfg, logger)
+	userCache := cache.NewMemoryCache(cfg.CacheTTL)
+
+	srv := httpserver.New(cfg, logger, userCache)
 	defer srv.Close()
 
 	mux := http.NewServeMux()
