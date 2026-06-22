@@ -60,7 +60,7 @@ projectservice: `ADDRESS` > `PORT` > `:8081`. `DATABASE_DSN` required.
 | `cmd/fieldservice/` | Stateless HTTP API. `GET /api/hello` |
 | `cmd/userservice/` | gRPC + HTTP. Postgres-backed. Proto in `proto/userservice/` |
 | `cmd/projectservice/` | HTTP API. Postgres-backed. OpenAPI v3 spec in `docs/api/projectservice.yaml`. Generated types in `internal/projectservice/api/` and `web/src/app/api/` |
-| `cmd/migrate/` | Applies `.up.sql` migrations. Per-service tracking tables |
+| `cmd/cli/` | CLI tool. `migrate` subcommand applies `.up.sql` migrations. Per-service tracking tables |
 | `web/src/app/` | Angular SPA. `app.ts` template is inline. Environments: `web/src/environments/` |
 
 ## Gotchas
@@ -83,7 +83,7 @@ Each service has its own directory and tracking table (`<service>_migrations`). 
 - Proxy: `cmd/proxy/`, `internal/proxy/` (config, httpserver, jwt)
 - fieldservice: `internal/fieldservice/httpserver/`, `internal/fieldservice/handlers/`
 - userservice: `internal/userservice/grpcserver/`, `internal/userservice/httpserver/`, `internal/userservice/store/`
-- Shared: `internal/httputil/`, `internal/db/`, `internal/migrate/`
+- Shared: `internal/httputil/`, `internal/db/`, `cmd/cli/migrate/`
 - Angular: `web/src/app/`; environments: `web/src/environments/`
 
 ## CI

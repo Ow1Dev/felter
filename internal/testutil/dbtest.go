@@ -14,8 +14,8 @@ import (
 	"github.com/testcontainers/testcontainers-go/modules/postgres"
 	"github.com/testcontainers/testcontainers-go/wait"
 
+	"github.com/Ow1Dev/felter/cmd/cli/migrate"
 	"github.com/Ow1Dev/felter/internal/db"
-	"github.com/Ow1Dev/felter/internal/migrate"
 )
 
 // StartPostgres starts a Postgres container, applies all discovered migrations,

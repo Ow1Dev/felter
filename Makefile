@@ -7,14 +7,14 @@ ifneq (,$(wildcard ./.env))
 endif
 
 WEB_DIR := web
-COMPOSE_FILES := -f docker-compose.yml -f infra/dev/compose.yml
+COMPOSE_FILES := -f infra/dev/infra.compose.yml -f infra/dev/app.compose.yml
 
 .PHONY: dev down-app migrate generate-api fmt tidy vet lint test fmt-check up down
 
 init:
 	@cd $(WEB_DIR) && bun install
-	@docker compose up -d
-	@for i in $$(seq 1 30); do docker compose exec postgres pg_isready -U felter > /dev/null 2>&1 && break || true; sleep 1; done
+	@docker compose --project-directory . -f infra/dev/infra.compose.yml up -d
+	@for i in $$(seq 1 30); do docker compose --project-directory . -f infra/dev/infra.compose.yml exec postgres pg_isready -U felter > /dev/null 2>&1 && break || true; sleep 1; done
 	@make migrate
 
 generate-api:
@@ -22,19 +22,19 @@ generate-api:
 	@./scripts/generate-ts-api.sh
 
 migrate:
-	@go build -buildvcs=false -o build/migrate ./cmd/migrate && ./build/migrate
+	@go build -buildvcs=false -o build/cli ./cmd/cli && ./build/cli migrate
 
 up:
-	@docker compose up -d
+	@docker compose --project-directory . -f infra/dev/infra.compose.yml up -d
 
 down:
-	@docker compose $(COMPOSE_FILES) down -v
+	@docker compose --project-directory . $(COMPOSE_FILES) down -v
 
 dev:
-	@docker compose $(COMPOSE_FILES) up --build -d
+	@docker compose --project-directory . $(COMPOSE_FILES) up --build -d
 
 down-app:
-	@docker compose -f infra/dev/compose.yml down
+	@docker compose --project-directory . -f infra/dev/app.compose.yml down
 
 fmt:
 	@gofumpt -w .
