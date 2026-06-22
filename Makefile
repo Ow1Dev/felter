@@ -22,7 +22,7 @@ generate-api:
 	@./scripts/generate-ts-api.sh
 
 migrate:
-	@go build -buildvcs=false -o build/migrate ./cmd/migrate && ./build/migrate
+	@go build -buildvcs=false -o build/cli ./cmd/cli && ./build/cli migrate
 
 up:
 	@docker compose --project-directory . -f infra/dev/infra.compose.yml up -d

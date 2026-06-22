@@ -89,7 +89,7 @@ make vet             # go vet ./...
 | `cmd/userservice/` | Go gRPC + HTTP | Postgres-backed, proto in `proto/userservice/` |
 | `cmd/projectservice/` | Go HTTP API | Postgres-backed, OpenAPI v3 spec in `docs/api/projectservice.yaml` |
 | `cmd/proxy/` | Go | Auth proxy with Keycloak OIDC + JWT |
-| `cmd/migrate/` | Go | Applies `.up.sql` migrations per service |
+| `cmd/cli/` | Go | CLI tool (`migrate` subcommand) |
 | `web/` | Angular 21 SPA | Bun package manager, `ng serve` for dev |
 
 ## Docker Images
