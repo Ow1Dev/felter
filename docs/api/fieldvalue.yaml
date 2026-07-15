@@ -1,0 +1,235 @@
+openapi: 3.0.3
+info:
+  title: FieldValue API
+  version: 1.0.0
+servers:
+  - url: /
+paths:
+  /field-values/mutate:
+    post:
+      operationId: mutateFieldValue
+      summary: Create, update, or delete a record and its field values
+      parameters:
+        - name: project_slug
+          in: query
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MutateRequest'
+      responses:
+        '201':
+          description: Record created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FieldRecord'
+        '200':
+          description: Record updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FieldRecord'
+        '204':
+          description: Record deleted successfully
+        '400':
+          description: Invalid request or validation failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Schema or record not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /field-values/query:
+    post:
+      operationId: queryFieldValues
+      summary: Query records by schema with optional filter AST
+      parameters:
+        - name: project_slug
+          in: query
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/QueryRequest'
+      responses:
+        '200':
+          description: Query results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QueryResponse'
+        '400':
+          description: Invalid request or filter AST
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Schema not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /field-values/definition:
+    get:
+      operationId: getFieldValueDefinition
+      summary: Introspection endpoint returning schema field definitions
+      parameters:
+        - name: project_slug
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: schema_key
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Schema definition
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SchemaDefinition'
+        '404':
+          description: Schema not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+components:
+  schemas:
+    FieldRecord:
+      type: object
+      required:
+        - record_id
+        - schema_key
+        - project_slug
+        - values
+        - created_at
+        - updated_at
+      properties:
+        record_id:
+          type: string
+          format: uuid
+        schema_key:
+          type: string
+        project_slug:
+          type: string
+        values:
+          type: object
+          additionalProperties: true
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    MutateRequest:
+      type: object
+      required:
+        - schema_key
+      properties:
+        schema_key:
+          type: string
+        record_id:
+          type: string
+          format: uuid
+        values:
+          type: object
+          additionalProperties: true
+        delete_record:
+          type: boolean
+    QueryRequest:
+      type: object
+      required:
+        - schema_key
+      properties:
+        schema_key:
+          type: string
+        filter:
+          $ref: '#/components/schemas/FilterNode'
+    QueryResponse:
+      type: object
+      required:
+        - records
+      properties:
+        records:
+          type: array
+          items:
+            $ref: '#/components/schemas/FieldRecord'
+    FilterNode:
+      type: object
+      required:
+        - op
+      properties:
+        op:
+          type: string
+        field:
+          type: string
+        value:
+          nullable: true
+        conditions:
+          type: array
+          items:
+            $ref: '#/components/schemas/FilterNode'
+    SchemaDefinition:
+      type: object
+      required:
+        - schema_key
+        - project_slug
+        - fields
+      properties:
+        schema_key:
+          type: string
+        project_slug:
+          type: string
+        fields:
+          type: array
+          items:
+            $ref: '#/components/schemas/FieldDefinition'
+    FieldDefinition:
+      type: object
+      required:
+        - key
+        - type
+        - required
+      properties:
+        key:
+          type: string
+        type:
+          type: string
+        required:
+          type: boolean
+    ErrorResponse:
+      type: object
+      required:
+        - error
+      properties:
+        error:
+          type: string
+        details:
+          type: array
+          items:
+            type: object
+            properties:
+              field:
+                type: string
+              expected_type:
+                type: string
+              got:
+                type: string

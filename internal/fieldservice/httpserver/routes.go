@@ -17,6 +17,9 @@ func addRoutes(mux *http.ServeMux, s store.Store, logger *slog.Logger) {
 	mux.Handle("DELETE /schemas/{schemaKey}", handlers.HandleDeleteSchema(logger, s))
 	mux.Handle("POST /schemas/{schemaKey}/fields", handlers.HandleCreateSchemaField(logger, s))
 	mux.Handle("DELETE /schemas/{schemaKey}/fields/{fieldKey}", handlers.HandleDeleteSchemaField(logger, s))
+	mux.Handle("POST /field-values/mutate", handlers.HandleMutateFieldValue(logger, s))
+	mux.Handle("POST /field-values/query", handlers.HandleQueryFieldValues(logger, s))
+	mux.Handle("GET /field-values/definition", handlers.HandleFieldValueDefinition(logger, s))
 
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusOK)

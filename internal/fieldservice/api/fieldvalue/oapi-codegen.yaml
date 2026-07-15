@@ -1,0 +1,4 @@
+package: fieldvalue
+output: internal/fieldservice/api/fieldvalue/types.gen.go
+generate:
+  models: true
