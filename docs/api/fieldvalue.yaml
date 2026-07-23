@@ -5,7 +5,7 @@ info:
 servers:
   - url: /
 paths:
-  /field-values/mutate:
+  /mutate:
     post:
       operationId: mutateFieldValue
       summary: Create, update, or delete a record and its field values
@@ -48,7 +48,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-  /field-values/query:
+  /query:
     post:
       operationId: queryFieldValues
       summary: Query records by schema with optional filter AST
@@ -83,7 +83,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-  /field-values/definition:
+  /definition:
     get:
       operationId: getFieldValueDefinition
       summary: Introspection endpoint returning schema field definitions

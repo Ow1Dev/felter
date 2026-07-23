@@ -15,7 +15,7 @@ import (
 	"github.com/Ow1Dev/felter/internal/testutil"
 )
 
-func setupTestServer(t *testing.T) (store.Store, *httptest.Server) {
+func setupTestServer(t *testing.T) (*store.PostgresStore, *httptest.Server) {
 	t.Helper()
 
 	pool := dbtest.StartPostgres(t)

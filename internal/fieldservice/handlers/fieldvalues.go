@@ -12,8 +12,8 @@ import (
 	"github.com/Ow1Dev/felter/internal/httputil"
 )
 
-// HandleMutateFieldValue returns a handler for POST /field-values/mutate.
-func HandleMutateFieldValue(logger *slog.Logger, s store.Store) http.Handler {
+// HandleMutateFieldValue returns a handler for POST /fields/mutate.
+func HandleMutateFieldValue(logger *slog.Logger, s store.RecordStore) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		projectSlug := r.URL.Query().Get("project_slug")
 		if projectSlug == "" {
@@ -88,8 +88,8 @@ func HandleMutateFieldValue(logger *slog.Logger, s store.Store) http.Handler {
 	})
 }
 
-// HandleQueryFieldValues returns a handler for POST /field-values/query.
-func HandleQueryFieldValues(logger *slog.Logger, s store.Store) http.Handler {
+// HandleQueryFieldValues returns a handler for POST /fields/query.
+func HandleQueryFieldValues(logger *slog.Logger, s store.RecordStore) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		projectSlug := r.URL.Query().Get("project_slug")
 		if projectSlug == "" {
@@ -129,8 +129,8 @@ func HandleQueryFieldValues(logger *slog.Logger, s store.Store) http.Handler {
 	})
 }
 
-// HandleFieldValueDefinition returns a handler for GET /field-values/definition.
-func HandleFieldValueDefinition(logger *slog.Logger, s store.Store) http.Handler {
+// HandleFieldValueDefinition returns a handler for GET /fields/definition.
+func HandleFieldValueDefinition(logger *slog.Logger, s store.RecordStore) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		projectSlug := r.URL.Query().Get("project_slug")
 		if projectSlug == "" {

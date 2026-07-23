@@ -4,7 +4,7 @@
  */
 
 export interface paths {
-    "/field-values/mutate": {
+    "/mutate": {
         parameters: {
             query?: never;
             header?: never;
@@ -21,7 +21,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/field-values/query": {
+    "/query": {
         parameters: {
             query?: never;
             header?: never;
@@ -38,7 +38,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/field-values/definition": {
+    "/definition": {
         parameters: {
             query?: never;
             header?: never;

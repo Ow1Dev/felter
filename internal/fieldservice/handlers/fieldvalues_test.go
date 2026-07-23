@@ -50,13 +50,13 @@ func TestHandleMutate_Create(t *testing.T) {
 
 	logger := slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelError}))
 	mux := http.NewServeMux()
-	mux.Handle("POST /field-values/mutate", HandleMutateFieldValue(logger, s))
+	mux.Handle("POST /mutate", HandleMutateFieldValue(logger, s))
 	srv := httptest.NewServer(mux)
 	defer srv.Close()
 
 	values := map[string]any{"title": "Fix login", "priority": float64(1)}
 	body, _ := json.Marshal(fieldvalue.MutateRequest{SchemaKey: "task", Values: &values})
-	req, _ := http.NewRequest(http.MethodPost, srv.URL+"/field-values/mutate?project_slug="+projectSlug, bytes.NewReader(body))
+	req, _ := http.NewRequest(http.MethodPost, srv.URL+"/mutate?project_slug="+projectSlug, bytes.NewReader(body))
 	req.Header.Set("X-User-ID", "1")
 
 	client := &http.Client{}
@@ -101,14 +101,14 @@ func TestHandleMutate_Update(t *testing.T) {
 
 	logger := slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelError}))
 	mux := http.NewServeMux()
-	mux.Handle("POST /field-values/mutate", HandleMutateFieldValue(logger, s))
+	mux.Handle("POST /mutate", HandleMutateFieldValue(logger, s))
 	srv := httptest.NewServer(mux)
 	defer srv.Close()
 
 	rid := rec.RecordId.String()
 	values := map[string]any{"title": "Updated"}
 	body, _ := json.Marshal(fieldvalue.MutateRequest{SchemaKey: "task", RecordId: &rec.RecordId, Values: &values})
-	req, _ := http.NewRequest(http.MethodPost, srv.URL+"/field-values/mutate?project_slug="+projectSlug, bytes.NewReader(body))
+	req, _ := http.NewRequest(http.MethodPost, srv.URL+"/mutate?project_slug="+projectSlug, bytes.NewReader(body))
 	req.Header.Set("X-User-ID", "1")
 
 	client := &http.Client{}
@@ -150,13 +150,13 @@ func TestHandleMutate_DeleteRecord(t *testing.T) {
 
 	logger := slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelError}))
 	mux := http.NewServeMux()
-	mux.Handle("POST /field-values/mutate", HandleMutateFieldValue(logger, s))
+	mux.Handle("POST /mutate", HandleMutateFieldValue(logger, s))
 	srv := httptest.NewServer(mux)
 	defer srv.Close()
 
 	deleteRecord := true
 	body, _ := json.Marshal(fieldvalue.MutateRequest{SchemaKey: "task", RecordId: &rec.RecordId, DeleteRecord: &deleteRecord})
-	req, _ := http.NewRequest(http.MethodPost, srv.URL+"/field-values/mutate?project_slug="+projectSlug, bytes.NewReader(body))
+	req, _ := http.NewRequest(http.MethodPost, srv.URL+"/mutate?project_slug="+projectSlug, bytes.NewReader(body))
 	req.Header.Set("X-User-ID", "1")
 
 	client := &http.Client{}
@@ -175,12 +175,12 @@ func TestHandleMutate_MissingProjectSlug(t *testing.T) {
 	s := setupFieldValueStore(t)
 	logger := slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelError}))
 	mux := http.NewServeMux()
-	mux.Handle("POST /field-values/mutate", HandleMutateFieldValue(logger, s))
+	mux.Handle("POST /mutate", HandleMutateFieldValue(logger, s))
 	srv := httptest.NewServer(mux)
 	defer srv.Close()
 
 	body, _ := json.Marshal(fieldvalue.MutateRequest{SchemaKey: "task"})
-	req, _ := http.NewRequest(http.MethodPost, srv.URL+"/field-values/mutate", bytes.NewReader(body))
+	req, _ := http.NewRequest(http.MethodPost, srv.URL+"/mutate", bytes.NewReader(body))
 	req.Header.Set("X-User-ID", "1")
 
 	client := &http.Client{}
@@ -202,12 +202,12 @@ func TestHandleMutate_MissingSchemaKey(t *testing.T) {
 
 	logger := slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelError}))
 	mux := http.NewServeMux()
-	mux.Handle("POST /field-values/mutate", HandleMutateFieldValue(logger, s))
+	mux.Handle("POST /mutate", HandleMutateFieldValue(logger, s))
 	srv := httptest.NewServer(mux)
 	defer srv.Close()
 
 	body, _ := json.Marshal(fieldvalue.MutateRequest{})
-	req, _ := http.NewRequest(http.MethodPost, srv.URL+"/field-values/mutate?project_slug="+projectSlug, bytes.NewReader(body))
+	req, _ := http.NewRequest(http.MethodPost, srv.URL+"/mutate?project_slug="+projectSlug, bytes.NewReader(body))
 	req.Header.Set("X-User-ID", "1")
 
 	client := &http.Client{}
@@ -229,13 +229,13 @@ func TestHandleMutate_TypeMismatch(t *testing.T) {
 
 	logger := slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelError}))
 	mux := http.NewServeMux()
-	mux.Handle("POST /field-values/mutate", HandleMutateFieldValue(logger, s))
+	mux.Handle("POST /mutate", HandleMutateFieldValue(logger, s))
 	srv := httptest.NewServer(mux)
 	defer srv.Close()
 
 	values := map[string]any{"priority": "not a number"}
 	body, _ := json.Marshal(fieldvalue.MutateRequest{SchemaKey: "task", Values: &values})
-	req, _ := http.NewRequest(http.MethodPost, srv.URL+"/field-values/mutate?project_slug="+projectSlug, bytes.NewReader(body))
+	req, _ := http.NewRequest(http.MethodPost, srv.URL+"/mutate?project_slug="+projectSlug, bytes.NewReader(body))
 	req.Header.Set("X-User-ID", "1")
 
 	client := &http.Client{}
@@ -281,12 +281,12 @@ func TestHandleQuery_List(t *testing.T) {
 
 	logger := slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelError}))
 	mux := http.NewServeMux()
-	mux.Handle("POST /field-values/query", HandleQueryFieldValues(logger, s))
+	mux.Handle("POST /query", HandleQueryFieldValues(logger, s))
 	srv := httptest.NewServer(mux)
 	defer srv.Close()
 
 	body, _ := json.Marshal(fieldvalue.QueryRequest{SchemaKey: "task"})
-	req, _ := http.NewRequest(http.MethodPost, srv.URL+"/field-values/query?project_slug="+projectSlug, bytes.NewReader(body))
+	req, _ := http.NewRequest(http.MethodPost, srv.URL+"/query?project_slug="+projectSlug, bytes.NewReader(body))
 	req.Header.Set("X-User-ID", "1")
 
 	client := &http.Client{}
@@ -324,13 +324,13 @@ func TestHandleQuery_ByRecordID(t *testing.T) {
 
 	logger := slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelError}))
 	mux := http.NewServeMux()
-	mux.Handle("POST /field-values/query", HandleQueryFieldValues(logger, s))
+	mux.Handle("POST /query", HandleQueryFieldValues(logger, s))
 	srv := httptest.NewServer(mux)
 	defer srv.Close()
 
 	filter := fieldvalue.FilterNode{Op: "eq", Field: strPtr("record_id"), Value: rec.RecordId.String()}
 	body, _ := json.Marshal(fieldvalue.QueryRequest{SchemaKey: "task", Filter: &filter})
-	req, _ := http.NewRequest(http.MethodPost, srv.URL+"/field-values/query?project_slug="+projectSlug, bytes.NewReader(body))
+	req, _ := http.NewRequest(http.MethodPost, srv.URL+"/query?project_slug="+projectSlug, bytes.NewReader(body))
 	req.Header.Set("X-User-ID", "1")
 
 	client := &http.Client{}
@@ -372,7 +372,7 @@ func TestHandleQuery_RangeAndLike(t *testing.T) {
 
 	logger := slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelError}))
 	mux := http.NewServeMux()
-	mux.Handle("POST /field-values/query", HandleQueryFieldValues(logger, s))
+	mux.Handle("POST /query", HandleQueryFieldValues(logger, s))
 	srv := httptest.NewServer(mux)
 	defer srv.Close()
 
@@ -384,7 +384,7 @@ func TestHandleQuery_RangeAndLike(t *testing.T) {
 		},
 	}
 	body, _ := json.Marshal(fieldvalue.QueryRequest{SchemaKey: "task", Filter: &filter})
-	req, _ := http.NewRequest(http.MethodPost, srv.URL+"/field-values/query?project_slug="+projectSlug, bytes.NewReader(body))
+	req, _ := http.NewRequest(http.MethodPost, srv.URL+"/query?project_slug="+projectSlug, bytes.NewReader(body))
 	req.Header.Set("X-User-ID", "1")
 
 	client := &http.Client{}
@@ -417,13 +417,13 @@ func TestHandleQuery_InvalidFilterOp(t *testing.T) {
 
 	logger := slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelError}))
 	mux := http.NewServeMux()
-	mux.Handle("POST /field-values/query", HandleQueryFieldValues(logger, s))
+	mux.Handle("POST /query", HandleQueryFieldValues(logger, s))
 	srv := httptest.NewServer(mux)
 	defer srv.Close()
 
 	filter := fieldvalue.FilterNode{Op: "invalid", Field: strPtr("priority"), Value: float64(1)}
 	body, _ := json.Marshal(fieldvalue.QueryRequest{SchemaKey: "task", Filter: &filter})
-	req, _ := http.NewRequest(http.MethodPost, srv.URL+"/field-values/query?project_slug="+projectSlug, bytes.NewReader(body))
+	req, _ := http.NewRequest(http.MethodPost, srv.URL+"/query?project_slug="+projectSlug, bytes.NewReader(body))
 	req.Header.Set("X-User-ID", "1")
 
 	client := &http.Client{}
@@ -445,11 +445,11 @@ func TestHandleDefinition(t *testing.T) {
 
 	logger := slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelError}))
 	mux := http.NewServeMux()
-	mux.Handle("GET /field-values/definition", HandleFieldValueDefinition(logger, s))
+	mux.Handle("GET /definition", HandleFieldValueDefinition(logger, s))
 	srv := httptest.NewServer(mux)
 	defer srv.Close()
 
-	resp, err := http.Get(srv.URL + "/field-values/definition?project_slug=" + projectSlug + "&schema_key=task")
+	resp, err := http.Get(srv.URL + "/definition?project_slug=" + projectSlug + "&schema_key=task")
 	if err != nil {
 		t.Fatalf("get: %v", err)
 	}
@@ -477,11 +477,11 @@ func TestHandleDefinition_SchemaNotFound(t *testing.T) {
 
 	logger := slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelError}))
 	mux := http.NewServeMux()
-	mux.Handle("GET /field-values/definition", HandleFieldValueDefinition(logger, s))
+	mux.Handle("GET /definition", HandleFieldValueDefinition(logger, s))
 	srv := httptest.NewServer(mux)
 	defer srv.Close()
 
-	resp, err := http.Get(srv.URL + "/field-values/definition?project_slug=" + projectSlug + "&schema_key=nonexistent")
+	resp, err := http.Get(srv.URL + "/definition?project_slug=" + projectSlug + "&schema_key=nonexistent")
 	if err != nil {
 		t.Fatalf("get: %v", err)
 	}

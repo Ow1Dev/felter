@@ -39,7 +39,7 @@ func run(ctx context.Context, cfg config.Config) error {
 	defer func() { _ = pool.Close() }()
 
 	s := store.NewPostgresStore(pool)
-	handler := httpserver.New(cfg, s, logger)
+	handler := httpserver.New(cfg, s, s, logger)
 
 	srv := &http.Server{
 		Addr:         cfg.Address,

@@ -11,10 +11,10 @@ import (
 )
 
 // New builds the root handler with routes and middleware.
-func New(_ config.Config, s store.Store, logger *slog.Logger) http.Handler {
+func New(_ config.Config, schemaStore store.SchemaStore, recordStore store.RecordStore, logger *slog.Logger) http.Handler {
 	mux := http.NewServeMux()
 
-	addRoutes(mux, s, logger)
+	addRoutes(mux, schemaStore, recordStore, logger)
 
 	var h http.Handler = mux
 	h = middleware.Recoverer(logger, h)
