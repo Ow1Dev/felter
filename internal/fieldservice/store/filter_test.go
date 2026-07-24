@@ -1,11 +1,13 @@
 package store
 
 import (
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/google/uuid"
 
+	"github.com/Ow1Dev/felter/internal/fieldservice/api"
 	"github.com/Ow1Dev/felter/internal/fieldservice/api/fieldvalue"
 )
 
@@ -392,5 +394,272 @@ func TestCompareGreater_Unsupported(t *testing.T) {
 	_, err := compareGreater([]int{1}, []int{2})
 	if err == nil {
 		t.Fatal("expected error for unsupported type")
+	}
+}
+
+func TestFilterToSQL_Nil(t *testing.T) {
+	sql, args, err := filterToSQL(nil, nil)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if sql != "" {
+		t.Fatalf("expected empty sql, got %q", sql)
+	}
+	if len(args) != 0 {
+		t.Fatalf("expected no args, got %v", args)
+	}
+}
+
+func TestFilterToSQL_EqString(t *testing.T) {
+	f := &FilterNode{Op: OpEq, Field: "name", Value: "alice"}
+	fields := map[string]schemaFieldMeta{"name": {Key: "name", Type: api.String}}
+	sql, args, err := filterToSQL(f, fields)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !strings.Contains(sql, "field_key = $2") || !strings.Contains(sql, "value = $3") {
+		t.Fatalf("unexpected sql: %s", sql)
+	}
+	if len(args) != 2 || args[0] != "name" || args[1] != "alice" {
+		t.Fatalf("unexpected args: %v", args)
+	}
+}
+
+func TestFilterToSQL_EqInt(t *testing.T) {
+	f := &FilterNode{Op: OpEq, Field: "score", Value: float64(42)}
+	fields := map[string]schemaFieldMeta{"score": {Key: "score", Type: api.Int}}
+	sql, args, err := filterToSQL(f, fields)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !strings.Contains(sql, "CAST(value AS BIGINT) = CAST($3 AS BIGINT)") {
+		t.Fatalf("unexpected sql: %s", sql)
+	}
+	if len(args) != 2 || args[0] != "score" || args[1] != "42" {
+		t.Fatalf("unexpected args: %v", args)
+	}
+}
+
+func TestFilterToSQL_EqFloat(t *testing.T) {
+	f := &FilterNode{Op: OpEq, Field: "rating", Value: float64(3.14)}
+	fields := map[string]schemaFieldMeta{"rating": {Key: "rating", Type: api.Float}}
+	sql, args, err := filterToSQL(f, fields)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !strings.Contains(sql, "CAST(value AS DOUBLE PRECISION) = CAST($3 AS DOUBLE PRECISION)") {
+		t.Fatalf("unexpected sql: %s", sql)
+	}
+	if len(args) != 2 || args[0] != "rating" || args[1] != "3.14" {
+		t.Fatalf("unexpected args: %v", args)
+	}
+}
+
+func TestFilterToSQL_EqBoolean(t *testing.T) {
+	f := &FilterNode{Op: OpEq, Field: "active", Value: true}
+	fields := map[string]schemaFieldMeta{"active": {Key: "active", Type: api.Boolean}}
+	sql, args, err := filterToSQL(f, fields)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !strings.Contains(sql, "CAST(value AS BOOLEAN) = CAST($3 AS BOOLEAN)") {
+		t.Fatalf("unexpected sql: %s", sql)
+	}
+	if len(args) != 2 || args[0] != "active" || args[1] != "true" {
+		t.Fatalf("unexpected args: %v", args)
+	}
+}
+
+func TestFilterToSQL_GtInt(t *testing.T) {
+	f := &FilterNode{Op: OpGt, Field: "score", Value: float64(10)}
+	fields := map[string]schemaFieldMeta{"score": {Key: "score", Type: api.Int}}
+	sql, args, err := filterToSQL(f, fields)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !strings.Contains(sql, "CAST(value AS BIGINT) > CAST($3 AS BIGINT)") {
+		t.Fatalf("unexpected sql: %s", sql)
+	}
+	if len(args) != 2 || args[0] != "score" || args[1] != "10" {
+		t.Fatalf("unexpected args: %v", args)
+	}
+}
+
+func TestFilterToSQL_GtBooleanError(t *testing.T) {
+	f := &FilterNode{Op: OpGt, Field: "active", Value: true}
+	fields := map[string]schemaFieldMeta{"active": {Key: "active", Type: api.Boolean}}
+	_, _, err := filterToSQL(f, fields)
+	if err == nil {
+		t.Fatal("expected error for gt on boolean")
+	}
+}
+
+func TestFilterToSQL_LikeString(t *testing.T) {
+	f := &FilterNode{Op: OpLike, Field: "title", Value: "world"}
+	fields := map[string]schemaFieldMeta{"title": {Key: "title", Type: api.String}}
+	sql, args, err := filterToSQL(f, fields)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !strings.Contains(sql, "POSITION(LOWER($3) IN LOWER(value)) > 0") {
+		t.Fatalf("unexpected sql: %s", sql)
+	}
+	if len(args) != 2 || args[0] != "title" || args[1] != "world" {
+		t.Fatalf("unexpected args: %v", args)
+	}
+}
+
+func TestFilterToSQL_LikeIntError(t *testing.T) {
+	f := &FilterNode{Op: OpLike, Field: "score", Value: "42"}
+	fields := map[string]schemaFieldMeta{"score": {Key: "score", Type: api.Int}}
+	_, _, err := filterToSQL(f, fields)
+	if err == nil {
+		t.Fatal("expected error for like on int field")
+	}
+}
+
+func TestFilterToSQL_NeString(t *testing.T) {
+	f := &FilterNode{Op: OpNe, Field: "name", Value: "alice"}
+	fields := map[string]schemaFieldMeta{"name": {Key: "name", Type: api.String}}
+	sql, args, err := filterToSQL(f, fields)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !strings.Contains(sql, "EXCEPT") || !strings.Contains(sql, "value = $3") {
+		t.Fatalf("unexpected sql: %s", sql)
+	}
+	if len(args) != 2 || args[0] != "name" || args[1] != "alice" {
+		t.Fatalf("unexpected args: %v", args)
+	}
+}
+
+func TestFilterToSQL_RecordID(t *testing.T) {
+	f := &FilterNode{Op: OpEq, Field: "record_id", Value: "11111111-1111-1111-1111-111111111111"}
+	sql, args, err := filterToSQL(f, nil)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !strings.Contains(sql, "record_id = $2") {
+		t.Fatalf("unexpected sql: %s", sql)
+	}
+	if len(args) != 1 || args[0] != "11111111-1111-1111-1111-111111111111" {
+		t.Fatalf("unexpected args: %v", args)
+	}
+}
+
+func TestFilterToSQL_RecordIDNe(t *testing.T) {
+	f := &FilterNode{Op: OpNe, Field: "record_id", Value: "11111111-1111-1111-1111-111111111111"}
+	sql, args, err := filterToSQL(f, nil)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !strings.Contains(sql, "record_id <> $2") {
+		t.Fatalf("unexpected sql: %s", sql)
+	}
+	if len(args) != 1 || args[0] != "11111111-1111-1111-1111-111111111111" {
+		t.Fatalf("unexpected args: %v", args)
+	}
+}
+
+func TestFilterToSQL_RecordIDLike(t *testing.T) {
+	f := &FilterNode{Op: OpLike, Field: "record_id", Value: "1111"}
+	sql, args, err := filterToSQL(f, nil)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !strings.Contains(sql, "POSITION(LOWER($2) IN LOWER(record_id::text)) > 0") {
+		t.Fatalf("unexpected sql: %s", sql)
+	}
+	if len(args) != 1 || args[0] != "1111" {
+		t.Fatalf("unexpected args: %v", args)
+	}
+}
+
+func TestFilterToSQL_UnknownFieldEq(t *testing.T) {
+	f := &FilterNode{Op: OpEq, Field: "missing", Value: "x"}
+	sql, _, err := filterToSQL(f, map[string]schemaFieldMeta{})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !strings.Contains(sql, "1=0") {
+		t.Fatalf("expected empty result sql, got: %s", sql)
+	}
+}
+
+func TestFilterToSQL_UnknownFieldNe(t *testing.T) {
+	f := &FilterNode{Op: OpNe, Field: "missing", Value: "x"}
+	sql, _, err := filterToSQL(f, map[string]schemaFieldMeta{})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if strings.Contains(sql, "1=0") {
+		t.Fatalf("expected all-records sql, got: %s", sql)
+	}
+	if !strings.Contains(sql, "GROUP BY record_id") {
+		t.Fatalf("expected record_id selection, got: %s", sql)
+	}
+}
+
+func TestFilterToSQL_And(t *testing.T) {
+	f := &FilterNode{
+		Op: OpAnd,
+		Conditions: []FilterNode{
+			{Op: OpEq, Field: "a", Value: "1"},
+			{Op: OpGt, Field: "b", Value: float64(2)},
+		},
+	}
+	fields := map[string]schemaFieldMeta{
+		"a": {Key: "a", Type: api.String},
+		"b": {Key: "b", Type: api.Int},
+	}
+	sql, _, err := filterToSQL(f, fields)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !strings.Contains(sql, "INTERSECT") {
+		t.Fatalf("expected INTERSECT, got: %s", sql)
+	}
+}
+
+func TestFilterToSQL_Or(t *testing.T) {
+	f := &FilterNode{
+		Op: OpOr,
+		Conditions: []FilterNode{
+			{Op: OpEq, Field: "a", Value: "1"},
+			{Op: OpEq, Field: "b", Value: "2"},
+		},
+	}
+	fields := map[string]schemaFieldMeta{
+		"a": {Key: "a", Type: api.String},
+		"b": {Key: "b", Type: api.String},
+	}
+	sql, _, err := filterToSQL(f, fields)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !strings.Contains(sql, "UNION") {
+		t.Fatalf("expected UNION, got: %s", sql)
+	}
+}
+
+func TestFilterToSQL_EmptyAnd(t *testing.T) {
+	f := &FilterNode{Op: OpAnd, Conditions: []FilterNode{}}
+	sql, _, err := filterToSQL(f, nil)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !strings.Contains(sql, "GROUP BY record_id") || strings.Contains(sql, "1=0") {
+		t.Fatalf("expected all-records sql, got: %s", sql)
+	}
+}
+
+func TestFilterToSQL_EmptyOr(t *testing.T) {
+	f := &FilterNode{Op: OpOr, Conditions: []FilterNode{}}
+	sql, _, err := filterToSQL(f, nil)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !strings.Contains(sql, "1=0") {
+		t.Fatalf("expected empty-result sql, got: %s", sql)
 	}
 }

@@ -257,12 +257,25 @@ func (s *PostgresStore) QueryRecords(ctx context.Context, projectSlug, schemaKey
 		return nil, err
 	}
 
-	const q = `
+	q := `
 		SELECT record_id, field_key, value, created_at, updated_at
 		FROM field_values
 		WHERE schema_id = $1
 	`
-	rows, err := s.db.QueryContext(ctx, q, schemaID)
+	args := []any{schemaID}
+
+	if filter != nil {
+		filterSQL, filterArgs, err := filterToSQL(filter, fieldsMap)
+		if err != nil {
+			return nil, err
+		}
+		if filterSQL != "" {
+			q += ` AND record_id IN (` + filterSQL + `)`
+			args = append(args, filterArgs...)
+		}
+	}
+
+	rows, err := s.db.QueryContext(ctx, q, args...)
 	if err != nil {
 		return nil, fmt.Errorf("query records: %w", err)
 	}
@@ -315,25 +328,7 @@ func (s *PostgresStore) QueryRecords(ctx context.Context, projectSlug, schemaKey
 		out = append(out, *rec)
 	}
 
-	if filter == nil {
-		return out, nil
-	}
-
-	if err := validateFilter(filter); err != nil {
-		return nil, err
-	}
-
-	filtered := make([]fieldvalue.FieldRecord, 0, len(out))
-	for _, rec := range out {
-		match, err := evaluateFilter(filter, rec)
-		if err != nil {
-			return nil, err
-		}
-		if match {
-			filtered = append(filtered, rec)
-		}
-	}
-	return filtered, nil
+	return out, nil
 }
 
 // GetSchemaDefinition returns the schema field definitions for introspection.

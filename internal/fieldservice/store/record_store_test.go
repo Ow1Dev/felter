@@ -602,3 +602,309 @@ func TestSchemaChangeResilience(t *testing.T) {
 		t.Fatalf("expected 0 raw rows for deleted field in field_values, got %d", count)
 	}
 }
+
+func TestQueryRecords_NeMissingField(t *testing.T) {
+	pool := dbtest.StartPostgres(t)
+	s := NewPostgresStore(pool)
+	ctx := context.Background()
+
+	projectSlug := fmt.Sprintf("nems-%d", time.Now().UnixNano())
+	setupSchemaWithFields(t, s, projectSlug, "task", []struct {
+		Key  string
+		Type api.FieldType
+	}{
+		{Key: "title", Type: api.String},
+		{Key: "priority", Type: api.Int},
+	})
+
+	_, err := s.MutateRecord(ctx, projectSlug, "task", nil, map[string]any{
+		"title": "A",
+	}, false, 1)
+	if err != nil {
+		t.Fatalf("create: %v", err)
+	}
+
+	// Record is missing "priority", so ne on priority should match all records.
+	filter := &FilterNode{Op: OpNe, Field: "priority", Value: float64(99)}
+	records, err := s.QueryRecords(ctx, projectSlug, "task", filter)
+	if err != nil {
+		t.Fatalf("query: %v", err)
+	}
+	if len(records) != 1 {
+		t.Fatalf("expected 1 record for ne on missing field, got %d", len(records))
+	}
+}
+
+func TestQueryRecords_NeDifferentValue(t *testing.T) {
+	pool := dbtest.StartPostgres(t)
+	s := NewPostgresStore(pool)
+	ctx := context.Background()
+
+	projectSlug := fmt.Sprintf("nedv-%d", time.Now().UnixNano())
+	setupSchemaWithFields(t, s, projectSlug, "task", []struct {
+		Key  string
+		Type api.FieldType
+	}{
+		{Key: "priority", Type: api.Int},
+	})
+
+	_, err := s.MutateRecord(ctx, projectSlug, "task", nil, map[string]any{
+		"priority": float64(1),
+	}, false, 1)
+	if err != nil {
+		t.Fatalf("create first: %v", err)
+	}
+	_, err = s.MutateRecord(ctx, projectSlug, "task", nil, map[string]any{
+		"priority": float64(2),
+	}, false, 1)
+	if err != nil {
+		t.Fatalf("create second: %v", err)
+	}
+
+	filter := &FilterNode{Op: OpNe, Field: "priority", Value: float64(1)}
+	records, err := s.QueryRecords(ctx, projectSlug, "task", filter)
+	if err != nil {
+		t.Fatalf("query: %v", err)
+	}
+	if len(records) != 1 {
+		t.Fatalf("expected 1 record for ne different value, got %d", len(records))
+	}
+	if records[0].Values["priority"] != int64(2) {
+		t.Fatalf("expected priority 2, got %v", records[0].Values["priority"])
+	}
+}
+
+func TestQueryRecords_LikeSpecialChars(t *testing.T) {
+	pool := dbtest.StartPostgres(t)
+	s := NewPostgresStore(pool)
+	ctx := context.Background()
+
+	projectSlug := fmt.Sprintf("lsc-%d", time.Now().UnixNano())
+	setupSchemaWithFields(t, s, projectSlug, "task", []struct {
+		Key  string
+		Type api.FieldType
+	}{
+		{Key: "title", Type: api.String},
+	})
+
+	_, err := s.MutateRecord(ctx, projectSlug, "task", nil, map[string]any{
+		"title": "100% complete",
+	}, false, 1)
+	if err != nil {
+		t.Fatalf("create: %v", err)
+	}
+	_, err = s.MutateRecord(ctx, projectSlug, "task", nil, map[string]any{
+		"title": "under_score",
+	}, false, 1)
+	if err != nil {
+		t.Fatalf("create: %v", err)
+	}
+
+	filter := &FilterNode{Op: OpLike, Field: "title", Value: "%"}
+	records, err := s.QueryRecords(ctx, projectSlug, "task", filter)
+	if err != nil {
+		t.Fatalf("query: %v", err)
+	}
+	if len(records) != 1 {
+		t.Fatalf("expected 1 record for literal %% match, got %d", len(records))
+	}
+	if records[0].Values["title"] != "100% complete" {
+		t.Fatalf("unexpected record: %v", records[0].Values["title"])
+	}
+
+	filter2 := &FilterNode{Op: OpLike, Field: "title", Value: "_"}
+	records2, err := s.QueryRecords(ctx, projectSlug, "task", filter2)
+	if err != nil {
+		t.Fatalf("query: %v", err)
+	}
+	if len(records2) != 1 {
+		t.Fatalf("expected 1 record for literal _ match, got %d", len(records2))
+	}
+	if records2[0].Values["title"] != "under_score" {
+		t.Fatalf("unexpected record: %v", records2[0].Values["title"])
+	}
+}
+
+func TestQueryRecords_UnknownField(t *testing.T) {
+	pool := dbtest.StartPostgres(t)
+	s := NewPostgresStore(pool)
+	ctx := context.Background()
+
+	projectSlug := fmt.Sprintf("uf-%d", time.Now().UnixNano())
+	setupSchemaWithFields(t, s, projectSlug, "task", []struct {
+		Key  string
+		Type api.FieldType
+	}{
+		{Key: "title", Type: api.String},
+	})
+
+	_, err := s.MutateRecord(ctx, projectSlug, "task", nil, map[string]any{
+		"title": "A",
+	}, false, 1)
+	if err != nil {
+		t.Fatalf("create: %v", err)
+	}
+
+	// eq on unknown field returns no records.
+	filter := &FilterNode{Op: OpEq, Field: "unknown", Value: "x"}
+	records, err := s.QueryRecords(ctx, projectSlug, "task", filter)
+	if err != nil {
+		t.Fatalf("query: %v", err)
+	}
+	if len(records) != 0 {
+		t.Fatalf("expected 0 records for unknown field eq, got %d", len(records))
+	}
+
+	// ne on unknown field returns all records.
+	filter2 := &FilterNode{Op: OpNe, Field: "unknown", Value: "x"}
+	records2, err := s.QueryRecords(ctx, projectSlug, "task", filter2)
+	if err != nil {
+		t.Fatalf("query: %v", err)
+	}
+	if len(records2) != 1 {
+		t.Fatalf("expected 1 record for unknown field ne, got %d", len(records2))
+	}
+}
+
+func TestQueryRecords_BooleanFilter(t *testing.T) {
+	pool := dbtest.StartPostgres(t)
+	s := NewPostgresStore(pool)
+	ctx := context.Background()
+
+	projectSlug := fmt.Sprintf("bf-%d", time.Now().UnixNano())
+	setupSchemaWithFields(t, s, projectSlug, "task", []struct {
+		Key  string
+		Type api.FieldType
+	}{
+		{Key: "active", Type: api.Boolean},
+	})
+
+	_, err := s.MutateRecord(ctx, projectSlug, "task", nil, map[string]any{
+		"active": true,
+	}, false, 1)
+	if err != nil {
+		t.Fatalf("create first: %v", err)
+	}
+	_, err = s.MutateRecord(ctx, projectSlug, "task", nil, map[string]any{
+		"active": false,
+	}, false, 1)
+	if err != nil {
+		t.Fatalf("create second: %v", err)
+	}
+
+	filter := &FilterNode{Op: OpEq, Field: "active", Value: true}
+	records, err := s.QueryRecords(ctx, projectSlug, "task", filter)
+	if err != nil {
+		t.Fatalf("query: %v", err)
+	}
+	if len(records) != 1 {
+		t.Fatalf("expected 1 record for bool eq, got %d", len(records))
+	}
+	if records[0].Values["active"] != true {
+		t.Fatalf("expected active true, got %v", records[0].Values["active"])
+	}
+
+	filter2 := &FilterNode{Op: OpNe, Field: "active", Value: true}
+	records2, err := s.QueryRecords(ctx, projectSlug, "task", filter2)
+	if err != nil {
+		t.Fatalf("query: %v", err)
+	}
+	if len(records2) != 1 {
+		t.Fatalf("expected 1 record for bool ne, got %d", len(records2))
+	}
+	if records2[0].Values["active"] != false {
+		t.Fatalf("expected active false, got %v", records2[0].Values["active"])
+	}
+}
+
+func TestQueryRecords_FloatFilter(t *testing.T) {
+	pool := dbtest.StartPostgres(t)
+	s := NewPostgresStore(pool)
+	ctx := context.Background()
+
+	projectSlug := fmt.Sprintf("ff-%d", time.Now().UnixNano())
+	setupSchemaWithFields(t, s, projectSlug, "task", []struct {
+		Key  string
+		Type api.FieldType
+	}{
+		{Key: "rating", Type: api.Float},
+	})
+
+	_, err := s.MutateRecord(ctx, projectSlug, "task", nil, map[string]any{
+		"rating": float64(1.5),
+	}, false, 1)
+	if err != nil {
+		t.Fatalf("create first: %v", err)
+	}
+	_, err = s.MutateRecord(ctx, projectSlug, "task", nil, map[string]any{
+		"rating": float64(3.7),
+	}, false, 1)
+	if err != nil {
+		t.Fatalf("create second: %v", err)
+	}
+
+	filter := &FilterNode{Op: OpGt, Field: "rating", Value: float64(2.0)}
+	records, err := s.QueryRecords(ctx, projectSlug, "task", filter)
+	if err != nil {
+		t.Fatalf("query: %v", err)
+	}
+	if len(records) != 1 {
+		t.Fatalf("expected 1 record for float gt, got %d", len(records))
+	}
+	if records[0].Values["rating"] != float64(3.7) {
+		t.Fatalf("expected rating 3.7, got %v", records[0].Values["rating"])
+	}
+
+	filter2 := &FilterNode{Op: OpEq, Field: "rating", Value: float64(1.5)}
+	records2, err := s.QueryRecords(ctx, projectSlug, "task", filter2)
+	if err != nil {
+		t.Fatalf("query: %v", err)
+	}
+	if len(records2) != 1 {
+		t.Fatalf("expected 1 record for float eq, got %d", len(records2))
+	}
+	if records2[0].Values["rating"] != float64(1.5) {
+		t.Fatalf("expected rating 1.5, got %v", records2[0].Values["rating"])
+	}
+}
+
+func TestQueryRecords_EmptyAndOr(t *testing.T) {
+	pool := dbtest.StartPostgres(t)
+	s := NewPostgresStore(pool)
+	ctx := context.Background()
+
+	projectSlug := fmt.Sprintf("eaor-%d", time.Now().UnixNano())
+	setupSchemaWithFields(t, s, projectSlug, "task", []struct {
+		Key  string
+		Type api.FieldType
+	}{
+		{Key: "title", Type: api.String},
+	})
+
+	_, err := s.MutateRecord(ctx, projectSlug, "task", nil, map[string]any{
+		"title": "A",
+	}, false, 1)
+	if err != nil {
+		t.Fatalf("create: %v", err)
+	}
+
+	// Empty AND should match all records.
+	filter := &FilterNode{Op: OpAnd, Conditions: []FilterNode{}}
+	records, err := s.QueryRecords(ctx, projectSlug, "task", filter)
+	if err != nil {
+		t.Fatalf("query empty and: %v", err)
+	}
+	if len(records) != 1 {
+		t.Fatalf("expected 1 record for empty AND, got %d", len(records))
+	}
+
+	// Empty OR should match no records.
+	filter2 := &FilterNode{Op: OpOr, Conditions: []FilterNode{}}
+	records2, err := s.QueryRecords(ctx, projectSlug, "task", filter2)
+	if err != nil {
+		t.Fatalf("query empty or: %v", err)
+	}
+	if len(records2) != 0 {
+		t.Fatalf("expected 0 records for empty OR, got %d", len(records2))
+	}
+}

@@ -5,6 +5,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Ow1Dev/felter/internal/fieldservice/api"
 	"github.com/Ow1Dev/felter/internal/fieldservice/api/fieldvalue"
 )
 
@@ -220,5 +221,174 @@ func compareGreater(a, b any) (bool, error) {
 		return av.After(bv), nil
 	default:
 		return false, fmt.Errorf("unsupported type for comparison: %T", a)
+	}
+}
+
+// filterToSQL converts a validated filter AST into a Postgres SQL subquery
+// that returns matching record_ids, plus its bound arguments.
+// The returned SQL uses $1 for schema_id; caller arguments must start with schemaID.
+func filterToSQL(filter *FilterNode, fieldsMap map[string]schemaFieldMeta) (sql string, args []any, err error) {
+	if filter == nil {
+		return "", nil, nil
+	}
+	b := &sqlBuilder{
+		fieldsMap: fieldsMap,
+		nextArg:   2, // $1 is reserved for schema_id
+	}
+	sql, err = b.build(filter)
+	if err != nil {
+		return "", nil, err
+	}
+	return sql, b.args, nil
+}
+
+type sqlBuilder struct {
+	fieldsMap map[string]schemaFieldMeta
+	args      []any
+	nextArg   int
+}
+
+func (b *sqlBuilder) addArg(v any) string {
+	arg := fmt.Sprintf("$%d", b.nextArg)
+	b.args = append(b.args, v)
+	b.nextArg++
+	return arg
+}
+
+func (b *sqlBuilder) build(filter *FilterNode) (string, error) {
+	if err := validateFilter(filter); err != nil {
+		return "", err
+	}
+
+	switch filter.Op {
+	case OpAnd:
+		if len(filter.Conditions) == 0 {
+			return `(SELECT record_id FROM field_values WHERE schema_id = $1 GROUP BY record_id)`, nil
+		}
+		parts := make([]string, len(filter.Conditions))
+		for i, c := range filter.Conditions {
+			p, err := b.build(&c)
+			if err != nil {
+				return "", err
+			}
+			parts[i] = p
+		}
+		return strings.Join(parts, "\nINTERSECT\n"), nil
+	case OpOr:
+		if len(filter.Conditions) == 0 {
+			return `(SELECT record_id FROM field_values WHERE schema_id = $1 AND 1=0 GROUP BY record_id)`, nil
+		}
+		parts := make([]string, len(filter.Conditions))
+		for i, c := range filter.Conditions {
+			p, err := b.build(&c)
+			if err != nil {
+				return "", err
+			}
+			parts[i] = p
+		}
+		return strings.Join(parts, "\nUNION\n"), nil
+	default:
+		return b.buildLeaf(filter)
+	}
+}
+
+func (b *sqlBuilder) buildLeaf(filter *FilterNode) (string, error) {
+	if filter.Field == "record_id" {
+		valStr := valueToString(filter.Value)
+		valArg := b.addArg(valStr)
+		switch filter.Op {
+		case OpEq:
+			return fmt.Sprintf(`SELECT record_id FROM field_values WHERE schema_id = $1 AND record_id = %s GROUP BY record_id`, valArg), nil
+		case OpNe:
+			return fmt.Sprintf(`SELECT record_id FROM field_values WHERE schema_id = $1 AND record_id <> %s GROUP BY record_id`, valArg), nil
+		case OpGt, OpGte, OpLt, OpLte:
+			opSQL, err := leafOpSQL(filter.Op)
+			if err != nil {
+				return "", err
+			}
+			return fmt.Sprintf(`SELECT record_id FROM field_values WHERE schema_id = $1 AND record_id %s %s GROUP BY record_id`, opSQL, valArg), nil
+		case OpLike:
+			return fmt.Sprintf(`SELECT record_id FROM field_values WHERE schema_id = $1 AND POSITION(LOWER(%s) IN LOWER(record_id::text)) > 0 GROUP BY record_id`, valArg), nil
+		default:
+			return "", fmt.Errorf("unsupported leaf operator for SQL: %s", filter.Op)
+		}
+	}
+
+	meta, ok := b.fieldsMap[filter.Field]
+	if !ok {
+		// Unknown field behaves as missing on every record (matches old client-side behaviour).
+		if filter.Op == OpNe {
+			return `(SELECT record_id FROM field_values WHERE schema_id = $1 GROUP BY record_id)`, nil
+		}
+		return `(SELECT record_id FROM field_values WHERE schema_id = $1 AND 1=0 GROUP BY record_id)`, nil
+	}
+
+	if filter.Op == OpLike && meta.Type != api.String {
+		return "", fmt.Errorf("like operator requires string field")
+	}
+	if (filter.Op == OpGt || filter.Op == OpGte || filter.Op == OpLt || filter.Op == OpLte) && meta.Type == api.Boolean {
+		return "", fmt.Errorf("cannot compare boolean with >, >=, <, <=")
+	}
+
+	fieldArg := b.addArg(filter.Field)
+	valStr := valueToString(filter.Value)
+
+	// For Ne we use an EXCEPT subquery that matches equality on the right side.
+	// Like is handled separately in the type switch below.
+	cmpOp := "="
+	if filter.Op != OpNe && filter.Op != OpLike {
+		var err error
+		cmpOp, err = leafOpSQL(filter.Op)
+		if err != nil {
+			return "", err
+		}
+	}
+
+	var cond string
+	switch meta.Type {
+	case api.Int:
+		valArg := b.addArg(valStr)
+		cond = fmt.Sprintf("CAST(value AS BIGINT) %s CAST(%s AS BIGINT)", cmpOp, valArg)
+	case api.Float:
+		valArg := b.addArg(valStr)
+		cond = fmt.Sprintf("CAST(value AS DOUBLE PRECISION) %s CAST(%s AS DOUBLE PRECISION)", cmpOp, valArg)
+	case api.Boolean:
+		valArg := b.addArg(valStr)
+		cond = fmt.Sprintf("CAST(value AS BOOLEAN) %s CAST(%s AS BOOLEAN)", cmpOp, valArg)
+	case api.String, api.Date, api.Datetime:
+		if filter.Op == OpLike {
+			valArg := b.addArg(valStr)
+			cond = fmt.Sprintf("POSITION(LOWER(%s) IN LOWER(value)) > 0", valArg)
+		} else {
+			valArg := b.addArg(valStr)
+			cond = fmt.Sprintf("value %s %s", cmpOp, valArg)
+		}
+	default:
+		return "", fmt.Errorf("unsupported field type for filter: %s", meta.Type)
+	}
+
+	if filter.Op == OpNe {
+		return fmt.Sprintf(`(SELECT record_id FROM field_values WHERE schema_id = $1 GROUP BY record_id) EXCEPT (SELECT record_id FROM field_values WHERE schema_id = $1 AND field_key = %s AND %s GROUP BY record_id)`, fieldArg, cond), nil
+	}
+
+	return fmt.Sprintf(`SELECT record_id FROM field_values WHERE schema_id = $1 AND field_key = %s AND %s GROUP BY record_id`, fieldArg, cond), nil
+}
+
+func leafOpSQL(op FilterOp) (string, error) {
+	switch op {
+	case OpEq:
+		return "=", nil
+	case OpNe:
+		return "<>", nil
+	case OpGt:
+		return ">", nil
+	case OpGte:
+		return ">=", nil
+	case OpLt:
+		return "<", nil
+	case OpLte:
+		return "<=", nil
+	default:
+		return "", fmt.Errorf("unsupported leaf operator for SQL: %s", op)
 	}
 }
