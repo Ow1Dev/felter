@@ -699,8 +699,8 @@ func TestFilterToSQL_NestedAndOr(t *testing.T) {
 	if unionIdx == -1 || intersectIdx == -1 {
 		t.Fatalf("expected both UNION and INTERSECT, got: %s", sql)
 	}
-	if intersectIdx < unionIdx {
-		// INTERSECT appears after UNION in the joined output, so we expect
+	if unionIdx < intersectIdx {
+		// UNION appears before INTERSECT in the joined output, so we expect
 		// the OR block (with UNION) to be wrapped in parentheses.
 		orBlock := sql[:intersectIdx]
 		if !strings.HasPrefix(strings.TrimSpace(orBlock), "(") || !strings.HasSuffix(strings.TrimSpace(orBlock), ")") {
@@ -730,6 +730,20 @@ func TestFilterToSQL_NestedAndWithNeEq(t *testing.T) {
 	}
 	if !strings.Contains(sql, "INTERSECT") {
 		t.Fatalf("expected INTERSECT for top-level And, got: %s", sql)
+	}
+	// The Ne branch must be parenthesized before INTERSECT.
+	exceptIdx := strings.Index(sql, "EXCEPT")
+	intersectIdx := strings.Index(sql, "INTERSECT")
+	if exceptIdx == -1 || intersectIdx == -1 {
+		t.Fatalf("expected both EXCEPT and INTERSECT, got: %s", sql)
+	}
+	if exceptIdx < intersectIdx {
+		// EXCEPT appears before INTERSECT in the joined output, so we expect
+		// the Ne block (with EXCEPT) to be wrapped in parentheses.
+		neBlock := sql[:intersectIdx]
+		if !strings.HasPrefix(strings.TrimSpace(neBlock), "(") || !strings.HasSuffix(strings.TrimSpace(neBlock), ")") {
+			t.Fatalf("expected Ne branch to be parenthesized, got: %s", neBlock)
+		}
 	}
 }
 
