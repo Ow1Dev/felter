@@ -663,3 +663,119 @@ func TestFilterToSQL_EmptyOr(t *testing.T) {
 		t.Fatalf("expected empty-result sql, got: %s", sql)
 	}
 }
+
+func TestFilterToSQL_NestedAndOr(t *testing.T) {
+	f := &FilterNode{
+		Op: OpAnd,
+		Conditions: []FilterNode{
+			{
+				Op: OpOr,
+				Conditions: []FilterNode{
+					{Op: OpEq, Field: "a", Value: "1"},
+					{Op: OpEq, Field: "b", Value: "2"},
+				},
+			},
+			{Op: OpEq, Field: "c", Value: "3"},
+		},
+	}
+	fields := map[string]schemaFieldMeta{
+		"a": {Key: "a", Type: api.String},
+		"b": {Key: "b", Type: api.String},
+		"c": {Key: "c", Type: api.String},
+	}
+	sql, _, err := filterToSQL(f, fields)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !strings.Contains(sql, "UNION") {
+		t.Fatalf("expected UNION in nested OR branch, got: %s", sql)
+	}
+	if !strings.Contains(sql, "INTERSECT") {
+		t.Fatalf("expected INTERSECT for top-level AND, got: %s", sql)
+	}
+	// The nested OR branch must be parenthesized before INTERSECT.
+	unionIdx := strings.Index(sql, "UNION")
+	intersectIdx := strings.Index(sql, "INTERSECT")
+	if unionIdx == -1 || intersectIdx == -1 {
+		t.Fatalf("expected both UNION and INTERSECT, got: %s", sql)
+	}
+	if intersectIdx < unionIdx {
+		// INTERSECT appears after UNION in the joined output, so we expect
+		// the OR block (with UNION) to be wrapped in parentheses.
+		orBlock := sql[:intersectIdx]
+		if !strings.HasPrefix(strings.TrimSpace(orBlock), "(") || !strings.HasSuffix(strings.TrimSpace(orBlock), ")") {
+			t.Fatalf("expected nested OR branch to be parenthesized, got: %s", orBlock)
+		}
+	}
+}
+
+func TestFilterToSQL_NestedAndWithNeEq(t *testing.T) {
+	f := &FilterNode{
+		Op: OpAnd,
+		Conditions: []FilterNode{
+			{Op: OpNe, Field: "a", Value: "1"},
+			{Op: OpEq, Field: "b", Value: "2"},
+		},
+	}
+	fields := map[string]schemaFieldMeta{
+		"a": {Key: "a", Type: api.String},
+		"b": {Key: "b", Type: api.String},
+	}
+	sql, _, err := filterToSQL(f, fields)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !strings.Contains(sql, "EXCEPT") {
+		t.Fatalf("expected EXCEPT for Ne condition, got: %s", sql)
+	}
+	if !strings.Contains(sql, "INTERSECT") {
+		t.Fatalf("expected INTERSECT for top-level And, got: %s", sql)
+	}
+}
+
+func TestFilterToSQL_InvalidRecordID(t *testing.T) {
+	f := &FilterNode{Op: OpEq, Field: "record_id", Value: "not-a-uuid"}
+	_, _, err := filterToSQL(f, nil)
+	if err == nil {
+		t.Fatal("expected error for invalid record_id")
+	}
+}
+
+func TestFilterToSQL_DateCast(t *testing.T) {
+	f := &FilterNode{Op: OpGt, Field: "due", Value: "2026-07-15T00:00:00Z"}
+	fields := map[string]schemaFieldMeta{"due": {Key: "due", Type: api.Date}}
+	sql, _, err := filterToSQL(f, fields)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !strings.Contains(sql, "CAST(value AS TIMESTAMPTZ)") || !strings.Contains(sql, "CAST($3 AS TIMESTAMPTZ)") {
+		t.Fatalf("expected TIMESTAMPTZ casts for date field, got: %s", sql)
+	}
+}
+
+func TestFilterToSQL_DatetimeCast(t *testing.T) {
+	f := &FilterNode{Op: OpEq, Field: "created", Value: "2026-07-15T12:30:00Z"}
+	fields := map[string]schemaFieldMeta{"created": {Key: "created", Type: api.Datetime}}
+	sql, _, err := filterToSQL(f, fields)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !strings.Contains(sql, "CAST(value AS TIMESTAMPTZ)") || !strings.Contains(sql, "CAST($3 AS TIMESTAMPTZ)") {
+		t.Fatalf("expected TIMESTAMPTZ casts for datetime field, got: %s", sql)
+	}
+}
+
+func TestFilterToSQL_StringNoCast(t *testing.T) {
+	f := &FilterNode{Op: OpEq, Field: "name", Value: "alice"}
+	fields := map[string]schemaFieldMeta{"name": {Key: "name", Type: api.String}}
+	sql, _, err := filterToSQL(f, fields)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if strings.Contains(sql, "CAST(value AS TIMESTAMPTZ)") {
+		t.Fatalf("expected no TIMESTAMPTZ cast for string field, got: %s", sql)
+	}
+	if !strings.Contains(sql, "value = $3") {
+		t.Fatalf("expected plain string comparison, got: %s", sql)
+	}
+}

@@ -908,3 +908,166 @@ func TestQueryRecords_EmptyAndOr(t *testing.T) {
 		t.Fatalf("expected 0 records for empty OR, got %d", len(records2))
 	}
 }
+
+func TestQueryRecords_NestedAndOr(t *testing.T) {
+	pool := dbtest.StartPostgres(t)
+	s := NewPostgresStore(pool)
+	ctx := context.Background()
+
+	projectSlug := fmt.Sprintf("nao-%d", time.Now().UnixNano())
+	setupSchemaWithFields(t, s, projectSlug, "task", []struct {
+		Key  string
+		Type api.FieldType
+	}{
+		{Key: "title", Type: api.String},
+		{Key: "priority", Type: api.Int},
+	})
+
+	_, err := s.MutateRecord(ctx, projectSlug, "task", nil, map[string]any{
+		"title":    "Fix bug",
+		"priority": float64(1),
+	}, false, 1)
+	if err != nil {
+		t.Fatalf("create first: %v", err)
+	}
+	_, err = s.MutateRecord(ctx, projectSlug, "task", nil, map[string]any{
+		"title":    "Add feature",
+		"priority": float64(2),
+	}, false, 1)
+	if err != nil {
+		t.Fatalf("create second: %v", err)
+	}
+	_, err = s.MutateRecord(ctx, projectSlug, "task", nil, map[string]any{
+		"title":    "Refactor",
+		"priority": float64(3),
+	}, false, 1)
+	if err != nil {
+		t.Fatalf("create third: %v", err)
+	}
+
+	// AND( OR(title = "Fix bug", title = "Add feature"), priority > 1 )
+	// Should return only "Add feature" because "Fix bug" has priority 1.
+	filter := &FilterNode{
+		Op: OpAnd,
+		Conditions: []FilterNode{
+			{
+				Op: OpOr,
+				Conditions: []FilterNode{
+					{Op: OpEq, Field: "title", Value: "Fix bug"},
+					{Op: OpEq, Field: "title", Value: "Add feature"},
+				},
+			},
+			{Op: OpGt, Field: "priority", Value: float64(1)},
+		},
+	}
+	records, err := s.QueryRecords(ctx, projectSlug, "task", filter)
+	if err != nil {
+		t.Fatalf("query nested and/or: %v", err)
+	}
+	if len(records) != 1 {
+		t.Fatalf("expected 1 record, got %d", len(records))
+	}
+	if records[0].Values["title"] != "Add feature" {
+		t.Fatalf("unexpected record title: %v", records[0].Values["title"])
+	}
+}
+
+func TestQueryRecords_NestedAndWithNeEq(t *testing.T) {
+	pool := dbtest.StartPostgres(t)
+	s := NewPostgresStore(pool)
+	ctx := context.Background()
+
+	projectSlug := fmt.Sprintf("nane-%d", time.Now().UnixNano())
+	setupSchemaWithFields(t, s, projectSlug, "task", []struct {
+		Key  string
+		Type api.FieldType
+	}{
+		{Key: "title", Type: api.String},
+		{Key: "priority", Type: api.Int},
+	})
+
+	_, err := s.MutateRecord(ctx, projectSlug, "task", nil, map[string]any{
+		"title":    "Fix bug",
+		"priority": float64(1),
+	}, false, 1)
+	if err != nil {
+		t.Fatalf("create first: %v", err)
+	}
+	_, err = s.MutateRecord(ctx, projectSlug, "task", nil, map[string]any{
+		"title":    "Add feature",
+		"priority": float64(2),
+	}, false, 1)
+	if err != nil {
+		t.Fatalf("create second: %v", err)
+	}
+	_, err = s.MutateRecord(ctx, projectSlug, "task", nil, map[string]any{
+		"title":    "Refactor",
+		"priority": float64(3),
+	}, false, 1)
+	if err != nil {
+		t.Fatalf("create third: %v", err)
+	}
+
+	// AND( Ne(title, "Fix bug"), Eq(priority, 2) )
+	// Should return only "Add feature".
+	filter := &FilterNode{
+		Op: OpAnd,
+		Conditions: []FilterNode{
+			{Op: OpNe, Field: "title", Value: "Fix bug"},
+			{Op: OpEq, Field: "priority", Value: float64(2)},
+		},
+	}
+	records, err := s.QueryRecords(ctx, projectSlug, "task", filter)
+	if err != nil {
+		t.Fatalf("query and with ne/eq: %v", err)
+	}
+	if len(records) != 1 {
+		t.Fatalf("expected 1 record, got %d", len(records))
+	}
+	if records[0].Values["title"] != "Add feature" {
+		t.Fatalf("unexpected record title: %v", records[0].Values["title"])
+	}
+}
+
+func TestQueryRecords_DateOffsetComparison(t *testing.T) {
+	pool := dbtest.StartPostgres(t)
+	s := NewPostgresStore(pool)
+	ctx := context.Background()
+
+	projectSlug := fmt.Sprintf("doc-%d", time.Now().UnixNano())
+	setupSchemaWithFields(t, s, projectSlug, "task", []struct {
+		Key  string
+		Type api.FieldType
+	}{
+		{Key: "due_date", Type: api.Date},
+	})
+
+	_, err := s.MutateRecord(ctx, projectSlug, "task", nil, map[string]any{
+		"due_date": "2026-07-15T00:00:00Z",
+	}, false, 1)
+	if err != nil {
+		t.Fatalf("create first: %v", err)
+	}
+	_, err = s.MutateRecord(ctx, projectSlug, "task", nil, map[string]any{
+		"due_date": "2026-07-20T00:00:00+00:00",
+	}, false, 1)
+	if err != nil {
+		t.Fatalf("create second: %v", err)
+	}
+
+	// Query with a different offset but same instant; gt should match the second record chronologically.
+	filter := &FilterNode{Op: OpGt, Field: "due_date", Value: "2026-07-18T00:00:00Z"}
+	records, err := s.QueryRecords(ctx, projectSlug, "task", filter)
+	if err != nil {
+		t.Fatalf("query date gt: %v", err)
+	}
+	if len(records) != 1 {
+		t.Fatalf("expected 1 record, got %d", len(records))
+	}
+	// The record with 2026-07-20 should match.
+	expectedDate := time.Date(2026, 7, 20, 0, 0, 0, 0, time.UTC)
+	gotDate, ok := records[0].Values["due_date"].(time.Time)
+	if !ok || !gotDate.Equal(expectedDate) {
+		t.Fatalf("unexpected record due_date: %v", records[0].Values["due_date"])
+	}
+}

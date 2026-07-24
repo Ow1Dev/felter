@@ -5,6 +5,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/google/uuid"
+
 	"github.com/Ow1Dev/felter/internal/fieldservice/api"
 	"github.com/Ow1Dev/felter/internal/fieldservice/api/fieldvalue"
 )
@@ -231,6 +233,9 @@ func filterToSQL(filter *FilterNode, fieldsMap map[string]schemaFieldMeta) (sql 
 	if filter == nil {
 		return "", nil, nil
 	}
+	if err := validateFilter(filter); err != nil {
+		return "", nil, err
+	}
 	b := &sqlBuilder{
 		fieldsMap: fieldsMap,
 		nextArg:   2, // $1 is reserved for schema_id
@@ -256,10 +261,6 @@ func (b *sqlBuilder) addArg(v any) string {
 }
 
 func (b *sqlBuilder) build(filter *FilterNode) (string, error) {
-	if err := validateFilter(filter); err != nil {
-		return "", err
-	}
-
 	switch filter.Op {
 	case OpAnd:
 		if len(filter.Conditions) == 0 {
@@ -271,7 +272,7 @@ func (b *sqlBuilder) build(filter *FilterNode) (string, error) {
 			if err != nil {
 				return "", err
 			}
-			parts[i] = p
+			parts[i] = "(" + p + ")"
 		}
 		return strings.Join(parts, "\nINTERSECT\n"), nil
 	case OpOr:
@@ -284,7 +285,7 @@ func (b *sqlBuilder) build(filter *FilterNode) (string, error) {
 			if err != nil {
 				return "", err
 			}
-			parts[i] = p
+			parts[i] = "(" + p + ")"
 		}
 		return strings.Join(parts, "\nUNION\n"), nil
 	default:
@@ -295,6 +296,11 @@ func (b *sqlBuilder) build(filter *FilterNode) (string, error) {
 func (b *sqlBuilder) buildLeaf(filter *FilterNode) (string, error) {
 	if filter.Field == "record_id" {
 		valStr := valueToString(filter.Value)
+		if filter.Op != OpLike {
+			if _, err := uuid.Parse(valStr); err != nil {
+				return "", fmt.Errorf("%w: invalid record_id %q", ErrInvalidFilter, valStr)
+			}
+		}
 		valArg := b.addArg(valStr)
 		switch filter.Op {
 		case OpEq:
@@ -355,13 +361,21 @@ func (b *sqlBuilder) buildLeaf(filter *FilterNode) (string, error) {
 	case api.Boolean:
 		valArg := b.addArg(valStr)
 		cond = fmt.Sprintf("CAST(value AS BOOLEAN) %s CAST(%s AS BOOLEAN)", cmpOp, valArg)
-	case api.String, api.Date, api.Datetime:
+	case api.String:
 		if filter.Op == OpLike {
 			valArg := b.addArg(valStr)
 			cond = fmt.Sprintf("POSITION(LOWER(%s) IN LOWER(value)) > 0", valArg)
 		} else {
 			valArg := b.addArg(valStr)
 			cond = fmt.Sprintf("value %s %s", cmpOp, valArg)
+		}
+	case api.Date, api.Datetime:
+		if filter.Op == OpLike {
+			valArg := b.addArg(valStr)
+			cond = fmt.Sprintf("POSITION(LOWER(%s) IN LOWER(value)) > 0", valArg)
+		} else {
+			valArg := b.addArg(valStr)
+			cond = fmt.Sprintf("CAST(value AS TIMESTAMPTZ) %s CAST(%s AS TIMESTAMPTZ)", cmpOp, valArg)
 		}
 	default:
 		return "", fmt.Errorf("unsupported field type for filter: %s", meta.Type)
