@@ -150,21 +150,36 @@ func (s *PostgresStore) CreateSchemaField(ctx context.Context, projectSlug, sche
 	return &f, nil
 }
 
-// DeleteSchemaField removes a field from a schema.
+// DeleteSchemaField removes a field from a schema and its associated values.
 func (s *PostgresStore) DeleteSchemaField(ctx context.Context, projectSlug, schemaKey, fieldKey string) error {
 	schemaID, err := s.resolveSchemaID(ctx, projectSlug, schemaKey)
 	if err != nil {
 		return err
 	}
 
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("begin tx: %w", err)
+	}
+	defer func() { _ = tx.Rollback() }()
+
+	const delValues = `DELETE FROM field_values WHERE schema_id = $1 AND field_key = $2`
+	if _, err := tx.ExecContext(ctx, delValues, schemaID, fieldKey); err != nil {
+		return fmt.Errorf("delete field values: %w", err)
+	}
+
 	const q = `DELETE FROM schema_fields WHERE schema_id = $1 AND key = $2`
-	res, err := s.db.ExecContext(ctx, q, schemaID, fieldKey)
+	res, err := tx.ExecContext(ctx, q, schemaID, fieldKey)
 	if err != nil {
 		return fmt.Errorf("delete field: %w", err)
 	}
 	n, _ := res.RowsAffected()
 	if n == 0 {
 		return ErrFieldNotFound
+	}
+
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("commit tx: %w", err)
 	}
 	return nil
 }

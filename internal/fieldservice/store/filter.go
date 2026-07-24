@@ -47,7 +47,7 @@ func validateFilter(filter *FilterNode) error {
 		}
 		return nil
 	default:
-		return fmt.Errorf("unknown filter operator: %s", filter.Op)
+		return fmt.Errorf("%w: unknown filter operator: %s", ErrInvalidFilter, filter.Op)
 	}
 }
 
@@ -92,12 +92,10 @@ func evaluateLeafFilter(filter *FilterNode, rec fieldvalue.FieldRecord) (bool, e
 		if !ok {
 			// Field not present on record.
 			switch filter.Op {
-			case OpEq:
+			case OpEq, OpGt, OpGte, OpLt, OpLte, OpLike:
 				return false, nil
 			case OpNe:
 				return true, nil
-			default:
-				return false, fmt.Errorf("field %q not found in record", filter.Field)
 			}
 		}
 	}

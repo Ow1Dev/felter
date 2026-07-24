@@ -22,6 +22,9 @@ var ErrFieldNotFound = fmt.Errorf("field not found")
 // ErrRecordNotFound is returned when a record is not found.
 var ErrRecordNotFound = fmt.Errorf("record not found")
 
+// ErrInvalidFilter is returned when a filter AST fails validation.
+var ErrInvalidFilter = fmt.Errorf("invalid filter")
+
 // PostgresStore implements Store with lib/pq.
 type PostgresStore struct {
 	db *sql.DB

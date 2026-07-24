@@ -12,9 +12,6 @@ import (
 func TestNewPostgresStore(t *testing.T) {
 	pool := dbtest.StartPostgres(t)
 	s := NewPostgresStore(pool)
-	if s == nil {
-		t.Fatal("expected non-nil store")
-	}
 	if s.db != pool {
 		t.Fatal("expected db to be set")
 	}

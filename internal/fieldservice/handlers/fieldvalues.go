@@ -2,6 +2,7 @@
 package handlers
 
 import (
+	"errors"
 	"log/slog"
 	"net/http"
 	"strings"
@@ -119,8 +120,12 @@ func HandleQueryFieldValues(logger *slog.Logger, s store.RecordStore) http.Handl
 				httputil.WriteError(w, http.StatusNotFound, "schema_not_found")
 				return
 			}
+			if errors.Is(err, store.ErrInvalidFilter) {
+				httputil.WriteError(w, http.StatusBadRequest, "invalid_filter")
+				return
+			}
 			logger.Error("query records", slog.String("err", err.Error()))
-			httputil.WriteError(w, http.StatusBadRequest, err.Error())
+			httputil.WriteError(w, http.StatusInternalServerError, "internal server error")
 			return
 		}
 

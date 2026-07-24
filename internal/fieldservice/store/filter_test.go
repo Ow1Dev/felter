@@ -282,9 +282,12 @@ func TestEvaluateFilter_MissingField_Ne(t *testing.T) {
 func TestEvaluateFilter_MissingField_Gt(t *testing.T) {
 	rec := makeRecord(map[string]any{})
 	f := &FilterNode{Op: OpGt, Field: "missing", Value: float64(1)}
-	_, err := evaluateFilter(f, rec)
-	if err == nil {
-		t.Fatal("expected error for missing field with gt")
+	match, err := evaluateFilter(f, rec)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if match {
+		t.Fatal("expected no match for missing field with gt")
 	}
 }
 

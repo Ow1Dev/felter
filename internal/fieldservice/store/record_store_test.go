@@ -393,6 +393,14 @@ func TestQueryRecords_RangeFilter(t *testing.T) {
 		t.Fatalf("create high: %v", err)
 	}
 
+	// Record that omits the filtered field to verify missing fields don't abort the query.
+	_, err = s.MutateRecord(ctx, projectSlug, "task", nil, map[string]any{
+		"due_date": "2026-07-16T00:00:00Z",
+	}, false, 1)
+	if err != nil {
+		t.Fatalf("create missing priority: %v", err)
+	}
+
 	gtFilter := &FilterNode{Op: OpGt, Field: "priority", Value: float64(3)}
 	records, err := s.QueryRecords(ctx, projectSlug, "task", gtFilter)
 	if err != nil {
@@ -557,10 +565,12 @@ func TestSchemaChangeResilience(t *testing.T) {
 		Type api.FieldType
 	}{
 		{Key: "title", Type: api.String},
+		{Key: "priority", Type: api.Int},
 	})
 
 	rec, err := s.MutateRecord(ctx, projectSlug, "task", nil, map[string]any{
-		"title": "Fix bug",
+		"title":    "Fix bug",
+		"priority": float64(1),
 	}, false, 1)
 	if err != nil {
 		t.Fatalf("create: %v", err)
@@ -577,15 +587,18 @@ func TestSchemaChangeResilience(t *testing.T) {
 	if len(records) != 1 {
 		t.Fatalf("expected 1 record after field deletion, got %d", len(records))
 	}
-	if len(records[0].Values) != 0 {
-		t.Fatalf("expected 0 values after field deletion, got %v", records[0].Values)
+	if len(records[0].Values) != 1 {
+		t.Fatalf("expected 1 value after field deletion, got %v", records[0].Values)
+	}
+	if records[0].Values["priority"] != int64(1) {
+		t.Fatalf("expected priority to remain, got %v", records[0].Values)
 	}
 
 	var count int
-	if err := s.db.QueryRowContext(ctx, `SELECT COUNT(*) FROM field_values WHERE record_id = $1`, rec.RecordId.String()).Scan(&count); err != nil {
+	if err := s.db.QueryRowContext(ctx, `SELECT COUNT(*) FROM field_values WHERE record_id = $1 AND field_key = $2`, rec.RecordId.String(), "title").Scan(&count); err != nil {
 		t.Fatalf("query count: %v", err)
 	}
-	if count != 1 {
-		t.Fatalf("expected 1 raw row in field_values, got %d", count)
+	if count != 0 {
+		t.Fatalf("expected 0 raw rows for deleted field in field_values, got %d", count)
 	}
 }

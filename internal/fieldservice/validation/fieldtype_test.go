@@ -2,6 +2,7 @@ package validation
 
 import (
 	"strconv"
+	"strings"
 	"testing"
 	"time"
 
@@ -45,6 +46,9 @@ func TestValidateValue(t *testing.T) {
 					}
 				} else {
 					t.Fatalf("expected FieldError, got %T", err)
+				}
+				if tc.wantMsg != "" && !strings.Contains(err.Error(), tc.wantMsg) {
+					t.Fatalf("error message = %q, want containing %q", err.Error(), tc.wantMsg)
 				}
 			} else if err != nil {
 				t.Fatalf("unexpected error: %v", err)
