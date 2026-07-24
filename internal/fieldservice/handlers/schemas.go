@@ -25,7 +25,7 @@ func userIDFromHeader(r *http.Request) (int64, bool) {
 }
 
 // HandleListSchemas returns a handler for GET /schemas.
-func HandleListSchemas(logger *slog.Logger, s store.Store) http.Handler {
+func HandleListSchemas(logger *slog.Logger, s store.SchemaStore) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		projectSlug := r.URL.Query().Get("project_slug")
 		if projectSlug == "" {
@@ -44,7 +44,7 @@ func HandleListSchemas(logger *slog.Logger, s store.Store) http.Handler {
 }
 
 // HandleCreateSchema returns a handler for POST /schemas.
-func HandleCreateSchema(logger *slog.Logger, s store.Store) http.Handler {
+func HandleCreateSchema(logger *slog.Logger, s store.SchemaStore) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		req, err := httputil.Decode[api.CreateSchemaRequest](r)
 		if err != nil {
@@ -86,7 +86,7 @@ func HandleCreateSchema(logger *slog.Logger, s store.Store) http.Handler {
 }
 
 // HandleGetSchema returns a handler for GET /schemas/{schemaKey}.
-func HandleGetSchema(logger *slog.Logger, s store.Store) http.Handler {
+func HandleGetSchema(logger *slog.Logger, s store.SchemaStore) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		schemaKey := r.PathValue("schemaKey")
 		if schemaKey == "" {
@@ -124,7 +124,7 @@ func HandleGetSchema(logger *slog.Logger, s store.Store) http.Handler {
 }
 
 // HandleDeleteSchema returns a handler for DELETE /schemas/{schemaKey}.
-func HandleDeleteSchema(logger *slog.Logger, s store.Store) http.Handler {
+func HandleDeleteSchema(logger *slog.Logger, s store.SchemaStore) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		schemaKey := r.PathValue("schemaKey")
 		if schemaKey == "" {
@@ -152,7 +152,7 @@ func HandleDeleteSchema(logger *slog.Logger, s store.Store) http.Handler {
 }
 
 // HandleCreateSchemaField returns a handler for POST /schemas/{schemaKey}/fields.
-func HandleCreateSchemaField(logger *slog.Logger, s store.Store) http.Handler {
+func HandleCreateSchemaField(logger *slog.Logger, s store.SchemaStore) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		schemaKey := r.PathValue("schemaKey")
 		if schemaKey == "" {
@@ -204,7 +204,7 @@ func HandleCreateSchemaField(logger *slog.Logger, s store.Store) http.Handler {
 }
 
 // HandleDeleteSchemaField returns a handler for DELETE /schemas/{schemaKey}/fields/{fieldKey}.
-func HandleDeleteSchemaField(logger *slog.Logger, s store.Store) http.Handler {
+func HandleDeleteSchemaField(logger *slog.Logger, s store.SchemaStore) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		schemaKey := r.PathValue("schemaKey")
 		if schemaKey == "" {

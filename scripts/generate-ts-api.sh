@@ -9,6 +9,7 @@ echo "Generating TypeScript API types..."
 
 cd "$WEB_DIR"
 bunx openapi-typescript ../docs/api/projectservice.yaml -o src/app/api/projectservice.ts
+bunx openapi-typescript ../docs/api/fieldvalue.yaml -o src/app/api/fieldvalue.ts
 bunx openapi-typescript ../docs/api/fieldservice.yaml -o src/app/api/fieldservice.ts
 
 echo "TypeScript API types generated."

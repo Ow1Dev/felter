@@ -13,7 +13,7 @@ func TestServerRoutes(t *testing.T) {
 	cfg := config.Config{
 		Address: ":0",
 	}
-	h := New(cfg, nil, slog.Default())
+	h := New(cfg, nil, nil, slog.Default())
 
 	t.Run("healthz route", func(t *testing.T) {
 		rr := httptest.NewRecorder()

@@ -10,7 +10,7 @@ WORKDIR /app
 
 COPY go.mod go.sum ./
 RUN go mod download
-RUN go install github.com/air-verse/air@latest
+RUN GOTOOLCHAIN=auto go install github.com/air-verse/air@latest
 
 EXPOSE 8080 8081 9090 9091 9092
 
